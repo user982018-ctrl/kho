@@ -92,8 +92,7 @@
     3 => 'green',
   ];
   $listSale = Helper::getListSale(); 
-  $checkAll = isFullAccess(Auth::user()->role);
-  // $isLeadSale = Helper::isLeadSale(Auth::user()->role);      
+  $checkAll = isFullAccess(Auth::user()->role);  
   $flag = false;
 
   if (($listSale->count() > 0 &&  $checkAll)) {
@@ -107,93 +106,11 @@
 
 <div class="tab-content rounded-bottom">
 <div class="tab-pane p-3 active preview" role="tabpanel" id="preview-1001">
-
   <form action="{{route('order')}}" class="mb-1">
     <div class="row mb-1 filter-order">
-   
       <div class="col-4 form-group daterange mb-1">
         <input id="daterange" class="btn btn-outline-secondary" type="text" name="daterange" />
       </div>
-
-      <?php $isDigital = Auth::user()->is_digital;?>
-      @if ($isDigital)
-      <div class="src-filter col-2 form-group mb-1">
-        <select name="src" id="src-filter" class="form-select">
-          <option value="999">--Chọn nguồn--</option>
-            <?php $pagePanCake = Helper::getConfigPanCake()->page_id;   
-              $ladiPages = [
-                [
-                    'name' => 'Tiễn - Ladipage mua4-tang2 ',
-                    'id' => 'mua4-tang2',
-                    // 'src' => 'https://www.nongnghiepsachvn.net/mua4-tang2'
-                ],
-                [
-                    'name' => 'Tiễn - Dùng Là X3 Năng Suất',
-                    'id' => '335902056281917',
-                    // 'src' => 'https://www.nongnghiepsachvn.net/mua4-tang2'
-                ],
-              ];?>
-              @foreach ($ladiPages as $page) 
-                <option value="{{$page['id']}}">{{($page['name']) ? : $page['name']}}</option>
-              @endforeach
-
-          </select>
-        </div>
-        @endif
-
-      @if ($checkAll)
-      <div class="src-filter col-2 form-group mb-1">
-        <select name="src" id="src-filter" class="form-select">
-          <option value="999">--Chọn nguồn--</option>
-            <?php $pagePanCake = Helper::getConfigPanCake()->page_id;
-                if ($pagePanCake) {
-                    $pages = json_decode($pagePanCake);
-                    // dd($pages);
-                    foreach ($pages as $page) {
-            ?>
-                        <option value="{{$page->id}}">{{($page->name) ? : $page->name}}</option>
-            <?php   }
-                }   
-
-                $ladiPages = [
-                  [
-                    'name' => 'Ladipage ruoc-dong',
-                    'id' => 'ruoc-dong',
-                    // 'src' => 'https://www.phanbonlua.xyz/ruoc-dong'
-                  ],
-                  [
-                    'name' => 'Ladipage mua4tang2',
-                    'id' => 'mua4tang2',
-                    // 'src' => 'https://www.nongnghiepsachvn.net/mua4tang2'
-                  ],
-                  [
-                    'name' => 'Ladipage giamgia45',
-                    'id' => 'giamgia45',
-                    // 'src' => 'https://www.nongnghiepsachvn.net/giamgia45'
-                  ],
-                  [
-                    'name' => 'Tiễn - Ladipage mua4-tang2 ',
-                    'id' => 'mua4-tang2',
-                    // 'src' => 'https://www.nongnghiepsachvn.net/mua4-tang2'
-                  ],
-
-                ];
-                foreach ($ladiPages as $page) {
-            ?>
-                    <option value="{{$page['id']}}">{{($page['name']) ? : $page['name']}}</option>
-            <?php   
-                }
-            ?> 
-        </select>
-      </div>
-      {{-- <div class="col-2 form-group mb-1">
-          <select name="mkt" id="mkt-filter" class="form-select" aria-label="Default select example">
-              <option value="999">--Chọn Marketing--</option>
-              <option value="1">a.Nguyên</option>
-              <option value="2">a.Tiễn</option>
-          </select>
-      </div> --}}
-      @endif
 
       @if ($checkAll || $isLeadSale)
       <div class="col-xs-12 col-sm-6 col-md-2 form-group mb-1">
@@ -233,136 +150,104 @@
     <button type="submit" class="btn btn-outline-primary"><svg class="icon me-2">
       <use xlink:href="{{asset('public/vendors/@coreui/icons/svg/free.svg#cil-filter')}}"></use>
     </svg>Lọc</button>
-    <a  class="btn btn-outline-danger" href="{{route('order')}}"><strong>X</strong></a>
-
+    <a class="btn btn-outline-danger" href="{{route('order')}}"><strong>X</strong></a>
   </form>
-
-    <div class="row ">
-      <div class="col-12">
-        
-        @if (isset($list))
-        <hr>
-        <button type="button" class="btn">Tổng đơn: {{$totalOrder}}</button>
-        <button type="button" class="btn">Tổng sản phẩm: {{$sumProduct}}</button>
-        @endif
+  <div class="row ">
+    <div class="col-12">
       
-      </div>
-      <div class="col col-4">
+      @if (isset($list))
+      <hr>
+      <button type="button" class="btn">Tổng đơn: {{$totalOrder}}</button>
+      <button type="button" class="btn">Tổng sản phẩm: {{$sumProduct}}</button>
+      @endif
+    
+    </div>
+    <div class="col-8 ">
+      <form class ="row tool-bar" action="{{route('search-order')}}" method="get">
+        <div class="col-3">
+          <input class="form-control" value="{{ isset($search) ? $search : null}}" name="search" placeholder="Tìm đơn hàng..." type="text">
+        </div>
+        <div class="col-3 " style="padding-left:0;">
+          <button type="submit" class="btn btn-primary"><svg class="icon me-2">
+            <use xlink:href="{{asset('public/vendors/@coreui/icons/svg/free.svg#cil-search')}}"></use>
+          </svg>Tìm</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div style="overflow-x: auto;" class="tab-pane p-0 pt-1 active preview" role="tabpanel" id="preview-1002">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th scope="col">#</th>
+        <th scope="col">Sđt</th>
+        <th class="mobile-col-tbl" scope="col" >Tên</th>
+        <th scope="col">Số lượng</th>
+        <th scope="col">Tổng tiền</th>
+        <th scope="col">Giới tính</th>
+        <th class="mobile-col-tbl" scope="col">Ngày lên đơn</th>
+        <th class="text-center" scope="col">Trạng thái</th>
+        <th scope="col">Mã vận đơn</th>
+        <th scope="col"></th>
+        <th scope="col"></th>
+      </tr>
+    </thead>
+    <tbody>
+
+    @foreach ($list as $item)
+    <?php $name = '';
+    // if (Helper::isOldCustomerV2($item->phone)) {
+    //     $name .= '❤️ ';
+    // }
+
+    $shippingOrder    = $item->shippingOrder()->get()->first();
+    $orderCode        = $shippingOrder->order_code ?? '';
+    $shippingOrderId  = $shippingOrder->id ?? '';
+    ?>
+      <tr>
+        <th onclick="window.location='{{route('view-order', $item->id)}}';" style='cursor: pointer;'>{{ $item->id }}</th>
+        <td style='cursor: pointer;'> <a class="link-name" target="blank" href="{{route('view-order', $item->id)}}">{{ $item->phone }}</a> </td>
+        <td style='cursor: pointer;' class="mobile-col-tbl"> <a class="link-name" target="blank" href="{{route('view-order', $item->id)}}">{{$name .= $item->name }}</a></td>
+        <td class="text-center">  {{ $item->qty }} </td>
+        <td >  {{ number_format($item->total) }}đ</td>
+        <td >  {{ getSexHelper($item->sex) }} </td>
+        <td class="mobile-col-tbl">  {{ date_format($item->created_at,"d-m-Y ")}}</td>
+        <td  class="text-center {{$styleStatus[$item->status]}}"><span>{{$listStatus[$item->status]}}</span> </td>
+        <td>
+
+          @if ($shippingOrderId)
+          <a  title="sửa" target="_blank" href="{{route('detai-shipping-order',['id'=>$shippingOrderId])}}" role="button">{{$orderCode}}</a>
+          @endif
         
-        <a class="add-order btn btn-primary" href="{{route('add-orders')}}" role="button">+ Thêm đơn</a>
-        {{-- <a href="{{route('add-orders')}}" class="btn btn-primary" data-toggle="modal" data-target="#myModal" role="button">+ Thêm đơn</a>    --}}
-        <!-- Modal -->
-        <div id="myModal" class="modal fade" tabindex="-1" role="dialog">
-          <div class="modal-dialog modal-xl" role="document">
-            <div class="modal-content ">
-              <div class="modal-header">
-                <h5 class="modal-title">Thêm đơn hàng mới</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                  <span aria-hidden="true">&times;</span>
-                </button>
-              </div>
-             
-              <iframe src="{{route('add-orders')}}" frameborder="0"></iframe>
-
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-8 ">
-        <form class ="row tool-bar" action="{{route('search-order')}}" method="get">
-          <div class="col-3">
-            <input class="form-control" value="{{ isset($search) ? $search : null}}" name="search" placeholder="Tìm đơn hàng..." type="text">
-          </div>
-          <div class="col-3 " style="padding-left:0;">
-            <button type="submit" class="btn btn-primary"><svg class="icon me-2">
-              <use xlink:href="{{asset('public/vendors/@coreui/icons/svg/free.svg#cil-search')}}"></use>
-            </svg>Tìm</button>
-        </form>
-          </div>
-      </div>
-    </div>
-    <div class="example-custom example mt-0">
-      <div class="tab-content rounded-bottom">
-        <div style="overflow-x: auto;" class="tab-pane p-0 pt-1 active preview" role="tabpanel" id="preview-1002">
-          <table class="table table-striped">
-            <thead>
-              <tr>
-                <th scope="col">#</th>
-                
-                <th scope="col">Sđt</th>
-                <th class="mobile-col-tbl" scope="col" >Tên</th>
-                <!-- <th scope="col">Địa chỉ</th> -->
-                <th scope="col">Số lượng</th>
-                <th scope="col">Tổng tiền</th>
-                <th scope="col">Giới tính</th>
-                <th class="mobile-col-tbl" scope="col">Ngày lên đơn</th>
-                <th class="text-center" scope="col">Trạng thái</th>
-                <th scope="col">Mã vận đơn</th>
-                <th scope="col"></th>
-                <th scope="col"></th>
-              </tr>
-            </thead>
-            <tbody>
-
-            @foreach ($list as $item)
-            <?php $name = '';
-            if (Helper::isOldCustomerV2($item->phone)) {
-                $name .= '❤️ ';
-            }
-
-            $shippingOrder    = $item->shippingOrder()->get()->first();
-            // dd($item->id);
-            $orderCode        = $shippingOrder->order_code ?? '';
-            $shippingOrderId  = $shippingOrder->id ?? '';
-            ?>
-              <tr>
-                
-                <th onclick="window.location='{{route('view-order', $item->id)}}';" style='cursor: pointer;'>{{ $item->id }}</th>
-                <td style='cursor: pointer;'> <a class="link-name" target="blank" href="{{route('view-order', $item->id)}}">{{ $item->phone }}</a> </td>
-                <td style='cursor: pointer;' class="mobile-col-tbl"> <a class="link-name" target="blank" href="{{route('view-order', $item->id)}}">{{$name .= $item->name }}</a></td>
-                <td class="text-center">  {{ $item->qty }} </td>
-                <td >  {{ number_format($item->total) }}đ</td>
-                <td >  {{ getSexHelper($item->sex) }} </td>
-                <td class="mobile-col-tbl">  {{ date_format($item->created_at,"d-m-Y ")}}</td>
-                <td  class="text-center {{$styleStatus[$item->status]}}"><span>{{$listStatus[$item->status]}}</span> </td>
-                <td>
-
-                  @if ($shippingOrderId)
-                  <a  title="sửa" target="_blank" href="{{route('detai-shipping-order',['id'=>$shippingOrderId])}}" role="button">{{$orderCode}}</a>
-                  @endif
-                
-                </td>
-                <td>
-                <a  title="sửa" class="" href="{{route('update-order',['id'=>$item->id])}}" role="button">
-                  
-                    <svg class="icon me-2">
-                      <use xlink:href="{{asset('public/vendors/@coreui/icons/svg/free.svg#cil-color-border')}}"></use>
-                    </svg>
-                </a>
-                </td>
-                
-                <td >
-                  <?php $checkAll = isFullAccess(Auth::user()->role);?>
-                  @if ($checkAll || $isLeadSale)
-                  <a title="xoá" onclick="return confirm('Bạn muốn xóa đơn này?')" href="{{route('delete-order',['id'=>$item->id])}}" role="button">
-                    <svg class="icon me-2">
-                      <use xlink:href="{{asset('public/vendors/@coreui/icons/svg/free.svg#cil-backspace')}}"></use>
-                    </svg>
-                  </a>
-                  @endif
-                </td>
-                
-              </tr>
-              @endforeach
-              
-            </tbody>
-          </table>
-          {{-- {{$list->links('pagination::bootstrap-5')}} --}}
-          {{ $list->appends(request()->input())->links('pagination::bootstrap-5') }}
-         
-        </div>
-      </div>
-    </div>
+        </td>
+        <td>
+        <a  title="sửa" href="{{route('update-order',['id'=>$item->id])}}" role="button">
+          
+            <svg class="icon me-2">
+              <use xlink:href="{{asset('public/vendors/@coreui/icons/svg/free.svg#cil-color-border')}}"></use>
+            </svg>
+        </a>
+        </td>
+        
+        <td >
+          <?php $checkAll = isFullAccess(Auth::user()->role);?>
+          @if ($checkAll || $isLeadSale)
+          <a title="xoá" onclick="return confirm('Bạn muốn xóa đơn này?')" href="{{route('delete-order',['id'=>$item->id])}}" role="button">
+            <svg class="icon me-2">
+              <use xlink:href="{{asset('public/vendors/@coreui/icons/svg/free.svg#cil-backspace')}}"></use>
+            </svg>
+          </a>
+          @endif
+        </td>
+        
+      </tr>
+      @endforeach
+      
+    </tbody>
+  </table>
+  {{ $list->appends(request()->input())->links('pagination::bootstrap-5') }}
+</div>
 </div>
   
 <div class="modal fade" id="notify-modal" tabindex="-1">

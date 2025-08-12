@@ -77,8 +77,11 @@ class OrdersController extends Controller
         if (count($req->all())) {
             return $this->filterOrderByDate($req);
         }
+       
+        $today = date("d/m/Y", time());
+        $p['daterange'] = [$today, $today];
         $category = Category::where('status', 1)->get();
-        $data       = $this->getListOrderByPermisson(Auth::user());
+        $data       = $this->getListOrderByPermisson(Auth::user(), $p);
         $sumProduct = $data->sum('qty');
         $totalOrder = $data->count();
         $list       = $data->paginate(50);
@@ -92,18 +95,15 @@ class OrdersController extends Controller
         $list   = Orders::orderBy('id', 'desc');
         if ($dataFilter) {
             if (isset($dataFilter['daterange'])) {
-               
                 $time       = $dataFilter['daterange'];
                 $timeBegin  = str_replace('/', '-', $time[0]);
                 $timeEnd    = str_replace('/', '-', $time[1]);
                 $dateBegin  = date('Y-m-d',strtotime("$timeBegin"));
                 $dateEnd    = date('Y-m-d',strtotime("$timeEnd"));
-
                 $list->whereDate('created_at', '>=', $dateBegin)
                 ->whereDate('created_at', '<=', $dateEnd);
-                  
             }
-                    
+                   
             if (isset($dataFilter['status'])) {
                 $list->whereStatus($dataFilter['status']);
             }
@@ -199,24 +199,11 @@ class OrdersController extends Controller
             }
         }
 
-        // dd($checkAll);
-        // if (!$checkAll) {
-        //     $roles      = json_decode($roles);
-        //     if ($roles) {
-        //         foreach ($roles as $key => $value) {
-        //             if ($value == 1 || $value == 4) {
-        //                 $checkAll = true;
-        //                 break;
-        //             }
-        //         }
-        //     }
-        // }
         if (!$checkAll) {
            $checkAll = isFullAccess(Auth::user()->role);
         }
         
         $isLeadSale = Helper::isLeadSale(Auth::user()->role);
-        $routeName = \Request::route();
 
         if ((isset($dataFilter['sale']) && $dataFilter['sale'] != 999) && ($checkAll || $isLeadSale)) {
             /** user đang login = full quyền và đang lọc 1 sale */
@@ -228,8 +215,6 @@ class OrdersController extends Controller
             
             $list = $list->where('assign_user', $user->id);
         }
-
-        
 
         return $list;
     }
