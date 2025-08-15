@@ -646,7 +646,7 @@
 <script>
   function number_format_js(number) {
     if (!number) {
-      return '';
+      return 0;
     }
     number = number.toLocaleString('vi-VN');
     return number.replace(/,/g, '.').replace(/\./g, ',');
@@ -694,8 +694,8 @@
                 + '<td class="text-center font-weight-bold"><span>' + number_format_js(newCusomerTrSum.total) + '</span></td>'
                 + '<td class="text-center font-weight-bold"><span>' + number_format_js(newCusomerTrSum.avg) + '</span></td>';
                         
-              strTdSum += '<td class="text-center font-weight-bold"><span>' + oldCusomerTrSum.count_order + '</span></td>'
-               + '<td class="text-center font-weight-bold"><span>' + oldCusomerTrSum.contact + '</span></td>'
+              strTdSum += '<td class="text-center font-weight-bold"><span>' + oldCusomerTrSum.contact+ '</span></td>'
+               + '<td class="text-center font-weight-bold"><span>' + oldCusomerTrSum.count_order + '</span></td>'
                 +'<td class="text-center font-weight-bold"><span>' + number_format_js(oldCusomerTrSum.total) + '</span></td>'
                 + '<td class="text-center font-weight-bold"><span>' + number_format_js(oldCusomerTrSum.avg) + '</span></td>'
                 + '<td class="text-center font-weight-bold"><span>' + (summaryCusomerTrSum.rate) + '%</span></td>'
@@ -864,7 +864,6 @@
                 + '<div class="progress-bar" role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100" style="width: ' + perCentAvgOld + '%"></div>'
                 + '</div><span class="progress-text">' + number_format_js(element.old_customer.avg) + '</span></div></td>';
 
-                console.log(element.summary_total);
               str += '<td class="tdProgress tdTyLeChotDon"><div class="box-progress"><div class="progress">'
                 + '<div class="progress-bar" role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100" style="width: ' + element.summary_total.rate + '%"></div>'
                 + '</div><span class="progress-text">' + element.summary_total.rate + '%</span></div></td>'
@@ -922,6 +921,9 @@
       type: 'GET',
       data: dataInput,
         success: function(data) {
+          $('.table_sale .loader').hide();
+          $('.table_sale .table-multi-select').css("opacity", "1");
+          $('.table_sale .table-multi-select').css("position", "relative");
           if (data.length == 0) {
             $("#body-sale").html('');
           } else if (data.data.length > 0) {
@@ -931,12 +933,33 @@
             var summaryCusomerTrSum = data.trSum.sumary_total;
             var maxAvcElem = data.data[0].summary_total.avg;
 
+             var strTdSum = '';
+            strTdSum += '<td colspan="2" class="text-center font-weight-bold">Tổng: </td>'
+              + '<td class="text-center font-weight-bold"><span>' + newCusomerTrSum.contact + '</span></td>'
+              + '<td class="text-center font-weight-bold"><span>' + newCusomerTrSum.order + '</span></td>'
+              + '<td class="text-center font-weight-bold"><span>' + newCusomerTrSum.rate + '%</span></td>'
+              + '<td class="text-center font-weight-bold"><span>' + newCusomerTrSum.product + '</span></td>'
+              + '<td class="text-center font-weight-bold"><span>' + number_format_js(newCusomerTrSum.total) + '</span></td>'
+              + '<td class="text-center font-weight-bold"><span>' + number_format_js(newCusomerTrSum.avg) + '</span></td>';
+                  
+            strTdSum += '<td class="text-center font-weight-bold"><span>' + oldCusomerTrSum.contact + '</span></td>'
+              + '<td class="text-center font-weight-bold"><span>' + oldCusomerTrSum.order + '</span></td>'
+              + '<td class="text-center font-weight-bold"><span>' + oldCusomerTrSum.rate + '%</span></td>'
+              + '<td class="text-center font-weight-bold"><span>' + oldCusomerTrSum.product + '</span></td>'
+              + '<td class="text-center font-weight-bold"><span>' + number_format_js(oldCusomerTrSum.total) + '</span></td>'
+              + '<td class="text-center font-weight-bold"><span>' + number_format_js(oldCusomerTrSum.avg) + '</span></td>'
+              + '<td class="text-center font-weight-bold"><span>' + summaryCusomerTrSum.rate + '%</span></td>'
+              + '<td class="text-center font-weight-bold"><span>' + number_format_js(summaryCusomerTrSum.total) + '</span></td>'
+              + '<td class="text-center font-weight-bold"><span>' + number_format_js(summaryCusomerTrSum.avg) + '</span></td>';
+
+            $("#tr-sum-sale").html(strTdSum);
               /** lấy ra trung bình đơn lớn nhất của trong list sale**/
             data.data.forEach((element, k) => {
               if (element.summary_total.avg > maxAvcElem) {
                   maxAvcElem = element.summary_total.avg;
               }
             });
+
             data.data.forEach((element, k) => {
               perCentContactNew = (newCusomerTrSum.contact != 0) ? (element.new_customer.contact / newCusomerTrSum.contact * 100) : 0;
               perCentOrderNew =  (newCusomerTrSum.order != 0) ? (element.new_customer.order / newCusomerTrSum.order * 100) : 0;
@@ -1005,35 +1028,15 @@
                 + '<td class="tdProgress tdGiaTriDon"><div class="box-progress"><div class="progress">'
                 + '<div class="progress-bar" role="progressbar" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100" style="width: ' + perCentAvgSum + '%"></div>'
                 + '</div><span class="progress-text">' + number_format_js(element.summary_total.avg) + '</span></div></td></tr>';
-            });
-              
             $("#body-sale").html(str);
+              });
+              
+            
 
-            var strTdSum = '';
-            strTdSum += '<td colspan="2" class="text-center font-weight-bold">Tổng: </td>'
-              + '<td class="text-center font-weight-bold"><span>' + newCusomerTrSum.contact + '</span></td>'
-              + '<td class="text-center font-weight-bold"><span>' + newCusomerTrSum.order + '</span></td>'
-              + '<td class="text-center font-weight-bold"><span>' + newCusomerTrSum.rate + '%</span></td>'
-              + '<td class="text-center font-weight-bold"><span>' + newCusomerTrSum.product + '</span></td>'
-              + '<td class="text-center font-weight-bold"><span>' + number_format_js(newCusomerTrSum.total) + '</span></td>'
-              + '<td class="text-center font-weight-bold"><span>' + number_format_js(newCusomerTrSum.avg) + '</span></td>';
-                  
-            strTdSum += '<td class="text-center font-weight-bold"><span>' + oldCusomerTrSum.contact + '</span></td>'
-              + '<td class="text-center font-weight-bold"><span>' + oldCusomerTrSum.order + '</span></td>'
-              + '<td class="text-center font-weight-bold"><span>' + oldCusomerTrSum.rate + '%</span></td>'
-              + '<td class="text-center font-weight-bold"><span>' + oldCusomerTrSum.product + '</span></td>'
-              + '<td class="text-center font-weight-bold"><span>' + number_format_js(oldCusomerTrSum.total) + '</span></td>'
-              + '<td class="text-center font-weight-bold"><span>' + number_format_js(oldCusomerTrSum.avg) + '</span></td>'
-              + '<td class="text-center font-weight-bold"><span>' + summaryCusomerTrSum.rate + '%</span></td>'
-              + '<td class="text-center font-weight-bold"><span>' + number_format_js(summaryCusomerTrSum.total) + '</span></td>'
-              + '<td class="text-center font-weight-bold"><span>' + number_format_js(summaryCusomerTrSum.avg) + '</span></td>';
-
-            $("#tr-sum-sale").html(strTdSum);
+           
           }
 
-          $('.table_sale .loader').hide();
-          $('.table_sale .table-multi-select').css("opacity", "1");
-          $('.table_sale .table-multi-select').css("position", "relative");
+         
         }
       });
   }

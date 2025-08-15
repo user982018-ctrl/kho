@@ -109,11 +109,8 @@ class MarketingController extends Controller
             ->groupBy('src.name')
             ->orderByDesc('total')
             ->get();
-            // ->simplePaginate(10);
-        // return $results;
-            // dd($results);
-        // $result =    $results->toArray();
-        return   json_decode(json_encode($results), true);
+
+        return json_decode(json_encode($results), true);
     }
 
     public function marketingSearchV2($req)

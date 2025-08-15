@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
+    <title>Agri Hub - MST 0318774816 - CÔNG TY TNHH TMDV XNK PHÂN BÓN MIỀN NAM</title>
     <style>
         body {
   background:#2196F3;
@@ -42,6 +42,7 @@
     </style>
 </head>
 <body>
+    <img style="height:100%; width:100%; opacity: 0.2;" src="https://phanbonmiennam.net/wp-content/uploads/2025/07/BIA-WEB-11-1400x787.png" alt="">
     <script src="//cdnjs.cloudflare.com/ajax/libs/pixi.js/2.2.5/pixi.js"></script>
     <script>
         //animation frame polyfill
@@ -173,7 +174,7 @@ function positionText() {
     var context = canvas.getContext("2d");
     context.fillStyle = "#000000";
     context.font = "80px 'Arial', sans-serif";
-    context.fillText("Not Found", 0, 80);
+    context.fillText("Comming soon", 0, 80);
 
     var imageData = context.getImageData(0, 0, 400, 400);
     data = imageData.data;

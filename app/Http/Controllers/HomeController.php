@@ -1132,7 +1132,7 @@ class HomeController extends Controller
                 $newContact += $data['new_customer']['contact'];
                 $newOrder += $data['new_customer']['order'];
 
-                if ($data['new_customer']['contact'] > 0 && $data['new_customer']['order'] > 0) {
+                if ($data['new_customer']['contact'] > 0 || $data['new_customer']['order'] > 0) {
                     $newProduct += $data['new_customer']['product'];
                     $newTotal += ($data['new_customer']['total']);
                 }
@@ -1140,7 +1140,7 @@ class HomeController extends Controller
                 $oldContact += $data['old_customer']['contact'];
                 $oldOrder += $data['old_customer']['order'];
 
-                if ($data['old_customer']['contact'] > 0 && $data['old_customer']['order'] > 0) {
+                if ($data['old_customer']['contact'] > 0 || $data['old_customer']['order'] > 0) {
                     $oldRate += $data['old_customer']['rate'];
                     $oldProduct += $data['old_customer']['product'];
                     $oldTotal += ($data['old_customer']['total']);
@@ -1199,7 +1199,7 @@ class HomeController extends Controller
 
     public function ajaxFilterDashboardDigitalV3(Request $req)
     {
-        $listDigital = $result =  $dataFilter = [];
+        $result = $dataFilter = [];
         if ($req->date) {
             $dataFilter['daterange'] = $req->date;
         }
@@ -1231,7 +1231,7 @@ class HomeController extends Controller
             $dataFilter['group'] = $group;
         } if ($req->groupUser && $groupUser != 999) {
             $dataFilter['groupUser'] = $groupUser;
-        } 
+        }
         // if ($groupDigital && $groupDigital != 999) {
         //     $groupDi = GroupUser::find($groupDigital);
         //     if ($groupDi) {
@@ -1251,10 +1251,9 @@ class HomeController extends Controller
         // }
 
         $listResult = [];
-
         $listResult = $this->getReportUserDigitalV3($dataFilter);
-        
-        $totalSum = $avgSum = $newContact = $newOrder = $newRate = $newProduct = $newTotal = $oldAvg = $oldTotal = $oldProduct = $oldRate = $newAvg = $oldContact = $oldOrder= 0;
+        $totalSum = $avgSum = $newContact = $newOrder = $newRate = $newProduct = $newTotal = 0;
+        $oldAvg = $oldTotal = $oldProduct = $oldRate = $oldContact = $oldOrder= 0;
         $sumNewCustomer = $sumOldCustomer = [
             'contact' => 0,
             'count_order' => 0,
@@ -1263,22 +1262,21 @@ class HomeController extends Controller
             'total' => 0,
             'avg' => 0,
         ];
-        
+       
         $newProduct = $newTotal = $oldProduct = $oldTotal = $oldRate = 0;
-        foreach ($listResult as $data) {
+        foreach ($listResult as $k => $data) {
             if (isset($data['new_customer'])) {
                 $newContact += $data['new_customer']['contact'];
                 $newOrder += $data['new_customer']['count_order'];
 
-                if ($data['new_customer']['contact'] > 0 && $data['new_customer']['count_order'] > 0) {
+                if ($data['new_customer']['contact'] > 0 || $data['new_customer']['count_order'] > 0) {
                     $newProduct += $data['new_customer']['product'];
                     $newTotal += ($data['new_customer']['total']);
                 }
             } if (isset($data['old_customer'])) {
                 $oldContact += $data['old_customer']['contact'];
                 $oldOrder += $data['old_customer']['count_order'];
-
-                if ($data['old_customer']['contact'] > 0 && $data['old_customer']['count_order'] > 0) {
+                if ($data['old_customer']['contact'] > 0 || $data['old_customer']['count_order'] > 0) {
                     $oldRate += $data['old_customer']['rate'];
                     $oldProduct += $data['old_customer']['product'];
                     $oldTotal += ($data['old_customer']['total']);
@@ -1296,6 +1294,7 @@ class HomeController extends Controller
         $sumNewCustomer['product'] = $newProduct;
         $sumNewCustomer['total'] = $newTotal;
         $sumNewCustomer['avg'] = ($newOrder != 0) ? round($newTotal/$newOrder, 0) : 0;
+
         $sumOldCustomer['contact'] = $oldContact;
         $sumOldCustomer['count_order'] = $oldOrder;
         if ($oldContact > 0) {
@@ -1320,8 +1319,9 @@ class HomeController extends Controller
         } else {
             $rateSumX = $sumOrderX * 100;
         }
-       
+
         $rateSumX = round($rateSumX, 2);
+        $result['data'] = array_values($listResult);
         $result['trSum'] = [
             'new_customer' => $sumNewCustomer,
             'old_customer' => $sumOldCustomer,
@@ -1335,12 +1335,140 @@ class HomeController extends Controller
         return $result;
     }
 
+    public function getListMktReportOrder($req, $listSrc)
+    {
+        if (!$listSrc) {
+            return [];
+        }
+
+        $ordersController = new OrdersController();
+        $userAdmin = User::find(1);
+
+        if (isset($req['daterange'])) {
+            $date = $req['daterange'];
+            if (getType($req['daterange']) == 'string') {
+                $req['daterange'] = explode('-', $date);
+            }
+        }
+
+        $listOrders = $ordersController->getListOrderByPermisson($userAdmin, $req);
+        foreach ($listOrders->get() as $order) {
+            if (!empty($order->saleCare) && !empty($order->saleCare->getSrcPage)) {
+                $sc = $order->saleCare;
+                $srcPageOfOrder = $sc->getSrcPage;
+                $srcId = $srcPageOfOrder->id;
+                $digitalSrc = $srcPageOfOrder->userDigital;
+                if (isset($listSrc[$digitalSrc->id])) {
+                    if ($sc->old_customer == 0 || $sc->old_customer == 2) {
+                        $listSrc[$digitalSrc->id]['new_customer']['total'] += $order->total;
+                        $listSrc[$digitalSrc->id]['new_customer']['product'] += $order->qty;
+                        
+                        $listSrc[$digitalSrc->id]['new_customer']['count_order'] ++;
+                        // $listSrc[$srcPageOfOrder->id]['old_customer']['total'] += $order->total;
+                    } else {
+                        $listSrc[$digitalSrc->id]['old_customer']['total'] += $order->total;
+                        $listSrc[$digitalSrc->id]['old_customer']['product'] += $order->qty;
+                        $listSrc[$digitalSrc->id]['old_customer']['count_order'] ++;
+                    }
+
+                } else {
+                    
+                    $listSrcIds = Helper::getSrcByPermission(Auth::user(), $req);
+                    if (in_array($srcId, $listSrcIds)) {
+                        $listSrc[$digitalSrc->id]['name'] = $digitalSrc->real_name;
+                        if ($sc->old_customer == 0 || $sc->old_customer == 2) {
+                            $listSrc[$digitalSrc->id]['new_customer']['total'] = $order->total;
+                            $listSrc[$digitalSrc->id]['new_customer']['count_order'] = 1;
+                            $listSrc[$digitalSrc->id]['new_customer']['product'] = $order->qty;
+                            $listSrc[$digitalSrc->id]['new_customer']['total'] = $order->total;
+                            $listSrc[$digitalSrc->id]['new_customer']['contact'] = 0;
+                            $listSrc[$digitalSrc->id]['new_customer']['id'] = $digitalSrc->id;
+                        } else {
+                            $listSrc[$digitalSrc->id]['old_customer']['total'] = $order->total;
+                            $listSrc[$digitalSrc->id]['old_customer']['count_order'] = 1;
+                            $listSrc[$digitalSrc->id]['old_customer']['product'] = $order->qty;
+                            $listSrc[$digitalSrc->id]['old_customer']['total'] = $order->total;
+                            $listSrc[$digitalSrc->id]['old_customer']['contact'] = 0;
+                            $listSrc[$digitalSrc->id]['old_customer']['id'] = $digitalSrc->id;
+                        }
+                        
+                    } else {
+                        // $orderNoSrc[] = $order->id;
+                        Log::channel('c')->info('Mã đơn hàng - data ko xác định data/ nguồn: ' . $order->id . '-' . $order->sale_care);
+                    }
+                    
+                }
+            } else {
+                // $orderNoSrc[] = $order->id;
+                Log::channel('c')->info('Mã đơn hàng - data ko xác định data/ nguồn: ' . $order->id . '-' . $order->sale_care);
+            }
+
+        }
+
+        foreach ($listSrc as $k => $data) {
+            $orderNew = $totalNew = $contactNew = $avgNew = $rateNew = 0;
+            $orderOld = $totalOld = $contactOld = $avgOld = $rateOld = 0;
+            /** new */
+            $new = $data['new_customer'];
+            $orderNew = $new['count_order'];
+            $totalNew = $new['total'];
+            $contactNew = $new['contact'];
+            if ($orderNew > 0) {
+                $avgNew =  $totalNew / $orderNew;
+            }
+            if ($contactNew > 0) {
+                $rateNew =  round($orderNew / $contactNew * 100, 2);
+            } else {
+                $rateNew =  round($orderNew * 100, 2);
+            }
+            $listSrc[$k]['new_customer']['avg'] = $avgNew;
+            $listSrc[$k]['new_customer']['rate'] = $rateNew;
+
+            /** old */
+            $old = $data['old_customer'];
+            $orderOld = $old['count_order'];
+            $totalOld = $old['total'];
+            $contactOld = $old['contact'];
+            if ($orderOld > 0) {
+                $avgOld =  $totalOld / $orderOld;
+            }
+            if ($contactOld > 0) {
+                $rateOld = round($orderOld / $contactOld * 100, 2);
+            } else {
+                $rateOld = round($orderOld * 100, 2);
+            }
+            $listSrc[$k]['old_customer']['avg'] = $avgOld;
+            $listSrc[$k]['old_customer']['rate'] = $rateOld;
+
+            $avgSum = $rateSum = $totalSum = 0;
+            $totalSum = $totalNew + $totalOld;
+            $orderSum = $orderOld + $orderNew;
+            if ($orderSum > 0) {
+                $avgSum = $totalSum / $orderSum;
+            } else {
+                $avgSum = $totalSum;
+            }
+
+            $rateSum = 0;
+            if ($contactNew > 0) {
+                $rateSum = $orderSum / $contactNew * 100;
+            } else {
+                $rateSum = $orderSum * 100;
+            }
+            $listSrc[$k]['summary_total'] = [
+                'total' => round($totalSum, 0),
+                'avg' => round($avgSum, 0),
+                'rate' => round($rateSum, 2)
+            ];
+        }
+
+        return $listSrc;
+    }
+
     public function getReportUserDigitalV3($dataFilter) 
     {
         $listFiltrSrc = $this->getListSaleCare($dataFilter);
-        $rs = $this->getListMktReportOrder($dataFilter, $listFiltrSrc);
-        
-        return $result;
+        return $this->getListMktReportOrder($dataFilter, $listFiltrSrc);
     }
 
     public function getDataDigitalV4($dataFilter)
@@ -1377,7 +1505,6 @@ class HomeController extends Controller
                 }
             }
         }
-        // dd($countOrder);
        
         if(count($filterNew) == 0 && count($filterOld) == 0) {
             $newCustomer['order'] = 0;
@@ -1431,7 +1558,6 @@ class HomeController extends Controller
             $newCustomer['contact'] = 0;
             $oldCustomer['contact'] = 0;
         } else {
-            // dd($countOrder == 0);
             if ($countOrder == 0) {
                 $newCustomer['order'] = 0;
                 $newCustomer['total'] = 0;
@@ -1456,7 +1582,6 @@ class HomeController extends Controller
             $newCustomer['contact'] = $countSaleCareNew;
         }
 
-        // dd($newCustomer);
         /** tỷ lệ chốt = số đơn/số data */
         /** new */
         if ($countSaleCareNew == 0) {
@@ -1560,7 +1685,6 @@ class HomeController extends Controller
                 }
             }
         }
-        // dd($countOrder);
        
         if(count($filterNew) == 0 && count($filterOld) == 0) {
             $newCustomer['order'] = 0;
@@ -1614,7 +1738,6 @@ class HomeController extends Controller
             $newCustomer['contact'] = 0;
             $oldCustomer['contact'] = 0;
         } else {
-            // dd($countOrder == 0);
             if ($countOrder == 0) {
                 $newCustomer['order'] = 0;
                 $newCustomer['total'] = 0;
@@ -1639,7 +1762,6 @@ class HomeController extends Controller
             $newCustomer['contact'] = $countSaleCareNew;
         }
 
-        // dd($newCustomer);
         /** tỷ lệ chốt = số đơn/số data */
         /** new */
         if ($countSaleCareNew == 0) {
@@ -1669,6 +1791,7 @@ class HomeController extends Controller
     {
         $result = [];
         $list = SaleCare::select('src_id', 'id', 'created_at', 'group_id', 'assign_user', 'old_customer');
+
         if (isset($req['daterange']) || !empty($req->daterange)) {
             $dateRange = (isset($req['daterange'])) ? $req['daterange'] : $req->daterange;
 
@@ -1714,19 +1837,7 @@ class HomeController extends Controller
             $list = $list->whereIn('src_id', $listSrcId);
         }
 
-        foreach ($list->get() as $s) {
-            // if (!isset($result[$sale->src_id]) && $sale->src_id) {
-            //     $result[$sale->src_id] = [
-            //         'name' => $sale->getSrcPage->name ?? '',
-            //         'contact' => 1,
-            //         'id' => $sale->src_id
-            //     ];
-            // } else if (isset($result[$sale->src_id])){
-            //     $result[$sale->src_id]['contact']++;
-            // }
-            // $idDigital = $sale->srcPage->user_digital;
-            /** apha test */
-            
+        foreach ($list->get() as $s) {          
             if (!$s->getSrcPage || !$s->getSrcPage->userDigital) {
                 continue;
             } else {
@@ -1735,32 +1846,48 @@ class HomeController extends Controller
      
             $digital = $s->getSrcPage->userDigital;
             if (!isset($result[$digital->id])) {
-                if ($s->old_customer == 0 || $s->old_customer == 2) {
+                if (($s->old_customer == 0 || $s->old_customer == 2)) {
                     $result[$digital->id] = [
-                        'name' => $digital->name ?? '',
+                        'name' => $digital->real_name ?? '',
                         'new_customer' => [
-                            'contact' => 1
+                            'contact' => 1,
+                            'total' => 0,
+                            'product' => 0,
+                            'count_order' => 0
+                        ],
+                        'old_customer' => [
+                            'contact' => 0,
+                            'total' => 0,
+                            'product' => 0,
+                            'count_order' => 0
                         ]
                     ];
                 } else if ($s->old_customer == 1) {
                     $result[$digital->id] = [
-                        'name' => $digital->name ?? '',
+                        'name' => $digital->real_name ?? '',
                         'old_customer' => [
-                            'contact' => 1
-                        ]
+                            'contact' => 1,
+                            'total' => 0,
+                            'product' => 0,
+                            'count_order' => 0
+                        ],
+                        'new_customer' => [
+                            'contact' => 0,
+                            'total' => 0,
+                            'product' => 0,
+                            'count_order' => 0
+                        ],
                     ];
                 }
                 
             } else {
-                if ($s->old_customer == 0 || $s->old_customer == 2) {
+                if (($s->old_customer == 0 || $s->old_customer == 2)) {
                     $result[$digital->id]['new_customer']['contact']++;
-                } else if ($s->old_customer == 1) {
-                    dd($result[$digital->id]);
-                     $result[$digital->id]['old_customer']['contact']++;
+                } else if ($s->old_customer == 1 ) {
+                    $result[$digital->id]['old_customer']['contact']++;
                 }
-            }
+            }    
         }
-        dd($result);
 
         return $result;
     }
