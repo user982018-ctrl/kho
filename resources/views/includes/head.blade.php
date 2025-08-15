@@ -39,4 +39,3 @@
         .hidden {display:none;}
         
     </style>
-<marquee style="color:red;font-size:16px;top:20px">Trân trọng thông báo: Hệ thống "kho.phanboncanada.online" sẽ chuyển sang tên miền mới là "kho.phanbonmiennam.net" <strong>vào ngày mai - ngày 16/08/2025</strong>.</marquee>
