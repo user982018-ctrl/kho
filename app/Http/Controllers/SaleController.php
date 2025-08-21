@@ -294,9 +294,10 @@ class SaleController extends Controller
         $listCall   = $helper->getListCall()->get();
         $sales      = Helper::getListSale()->get();
        
-        $time       = date('d/m/Y') . '-' . date('d/m/Y');
+        // $time       = date('d/m/Y') . '-' . date('d/m/Y');
         // $time = '30/07/2025 - 30/07/2025';
-        $dataFilter['daterange'] = explode("-",$time); 
+        // $dataFilter['daterange'] = explode("-",$time); 
+        $dataFilter['daterange']  = [date('d/m/Y'), date('d/m/Y')];
         $saleCare   = $this->getListSalesByPermisson(Auth::user(), $dataFilter);
 
         $listSrc    = SrcPage::select('id', 'name')->get();
@@ -422,6 +423,7 @@ class SaleController extends Controller
      */
     public function save(Request $req) 
     {
+        //   dd('hi');
         $validator      = Validator::make($req->all(), [
             'phone'     =>  ['required', 'regex:/^(03[0-9]|05[0-9]|07[0-9]|08[0-9]|09[0-9])\d{7}$/']
             
@@ -516,60 +518,7 @@ class SaleController extends Controller
             }
 
             $saleCare->save();
-            if (!isset($req->id)) {
-                $tProduct = Helper::getListProductByOrderId( $saleCare->id_order);
-                //gửi thông báo qua telegram
-                $telegram = Helper::getConfigTelegram();
-                if ($telegram && $telegram->status == 1) {
-                    $tokenGroupChat = $telegram->token;
 
-                    $chatId = (!empty($chatId)) ? $chatId : $req->chat_id;
-
-                    // if ($req->phone == '0973409613' || $req->phone == '0908361589') {
-                    //     $chatId = '-4286962864'; //auto về nhóm test
-                    // }
-
-                    $endpoint       = "https://api.telegram.org/bot$tokenGroupChat/sendMessage";
-                    $client         = new \GuzzleHttp\Client();
-
-                    // $userAssign     = Helper::getUserByID($order->assign_user)->real_name;
-                    // $nameUserOrder  = ($order->sex == 0 ? 'anh' : 'chị') ;
-
-                    $notiText       = "Khách hàng: $saleCare->full_name"
-                        . "\nSố điện thoại: $saleCare->phone"
-                        . "\nNội dung: $saleCare->messages";
-
-                    $name =  $saleCare->user->real_name ?: $saleCare->user->name;
-
-                    $textSrcPage = $req->text;
-                    $srcPageId = $req->src_id;
-                    $srcPage = SrcPage::find($srcPageId);
-                    if($srcPage) {
-                        $textSrcPage = $srcPage->name;
-                    }
-
-                    if ($saleCare->old_customer == 1) {
-                        if (!$saleCare->has_old_order) {
-                            $notiText .= "\nĐã nhận được hàng."  . "\nĐơn mua: " . $tProduct; 
-                        }
-
-                        if ($saleCare->type_TN == 1) {
-                            $notiText .= "\nNguồn data: " . $textSrcPage;
-                        }
-                        $notiText .= "\nCSKH nhận data: " . $name;    
-                    } else if ($saleCare->old_customer == 0 || $saleCare->old_customer == 2) {
-                        $notiText .= "\nNguồn data: " . $textSrcPage;
-                        $notiText .= "\nSale nhận data: " . $name;
-                    }
-
-                    // if ($chatId) {
-                    //     $response = $client->request('GET', $endpoint, ['query' => [
-                    //         'chat_id' => $chatId, 
-                    //         'text' => $notiText,
-                    //     ]]);
-                    // } 
-                }
-            }
             $routeName = \Request::route();
 
             // return response()->json(['success'=>$text]);
@@ -579,17 +528,17 @@ class SaleController extends Controller
                 notify()->success($text, 'Thành công!');
             }
 
-            Session::forget('name');
-            Session::forget('phone');
-            Session::forget('address');
-            Session::forget('messages');
+            // Session::forget('name');
+            // Session::forget('phone');
+            // Session::forget('address');
+            // Session::forget('messages');
         } else {
             notify()->error('Lỗi khi tạo tác nghiệp mới', 'Thất bại!');
             
-            Session::put('name', $req->name);
-            Session::put('phone', $req->phone);
-            Session::put('address', $req->address);
-            Session::put('messages', $req->messages);
+            // Session::put('name', $req->name);
+            // Session::put('phone', $req->phone);
+            // Session::put('address', $req->address);
+            // Session::put('messages', $req->messages);
             foreach ($validator->errors()->messages() as $mes) {
                 // notify()->error($mes[], 'Thất bại!');
                 notify()->error($mes[0], 'Thất bại!');
@@ -1105,6 +1054,8 @@ class SaleController extends Controller
             $time       = $req->daterange;
             $arrTime    = explode("-",$time); 
             $dataFilter['daterange'] = $arrTime;
+        } else {
+            $dataFilter['daterange']  = [date('d/m/Y'), date('d/m/Y')];
         }
 
         $typeDate = $req->typeDate;

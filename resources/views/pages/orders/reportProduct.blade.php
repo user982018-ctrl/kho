@@ -98,7 +98,7 @@
 
   <script>
     // Dữ liệu đầu vào (từ yêu cầu của bạn)
-    const rawItems = [
+    const rawItems9 = [
       { name: "5kg 22-22-22", qty: 6 },
       { name: "5kg 30-10-10", qty: 18 },
       { name: "5kg 10-10-30", qty: 6 },
@@ -125,7 +125,11 @@
       { name: "1 Xô Tricho 10kg + 3 Vọt đọt", qty: 3 },
       { name: "Xô Tricho 10kg", qty: 4 },
     ];
-
+    // console.log('rawItems2', rawItems2);
+    const rawItemsJson = '<?php echo $lastData;?>';
+    
+    const rawItems = JSON.parse(rawItemsJson);
+    console.log('rawItems', rawItems);
     // Helper: bỏ dấu tiếng Việt để tìm kiếm mượt hơn
     const noAccent = (str) => str
       .normalize('NFD')
@@ -155,12 +159,12 @@
         items.forEach(item => {
           const wrap = document.createElement('div');
           wrap.className = 'item';
-          const qtyClass = item.qty >= 15 ? 'big' : item.qty >= 5 ? 'mid' : 'small';
+          const qtyClass = item.id >= 15 ? 'big' : item.qty >= 5 ? 'mid' : 'small';
           wrap.innerHTML = `
-            <div class="qty ${qtyClass}">${item.qty}</div>
+            <div class="qty ${qtyClass}">${item.id}</div>
             <div style="flex:1">
               <div class="name">${item.name}</div>
-              <div class="sub">Số lượng: ${item.id}</div>
+              <div class="sub">Số lượng: ${item.qty}</div>
             </div>
           `;
           frag.appendChild(wrap);

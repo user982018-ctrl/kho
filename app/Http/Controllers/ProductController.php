@@ -6,11 +6,34 @@ use App\Models\Category;
 use Illuminate\Http\Request;
 use Validator;
 use App\Models\Product;
+use App\Models\ProductAttributes;
+use App\Models\ProductAttributeValue;
 use App\Models\ProductVariant;
 use Illuminate\Support\Facades\Auth;
 
 class ProductController extends Controller
 {
+    
+    public function getAttributesProduct()
+    {
+        $listAttribute = [];
+        $listAttr = ProductAttributes::where('status', 1);
+
+        foreach ($listAttr->get() as $attr) {
+            if ($attr->values) {
+                $attr = [
+                    'id' => $attr->id,
+                    'name' => $attr->name,
+                    'values' => $attr->values->select('id', 'attribute_id', 'value')->toArray()
+                ];
+                $listAttribute[] = $attr;
+            }
+        }
+
+        return $listAttribute;
+    }
+
+
     public function getVariantsProductById(Request $req)
     {
         $result = $list_attribute = [];
@@ -33,11 +56,9 @@ class ProductController extends Controller
            
         }
 
-        return response()->json(
-            $result
-            
-        );
+        return response()->json($result);
     }
+
     /**
      * Display a listing of the resource.
      *
@@ -92,6 +113,7 @@ class ProductController extends Controller
             }
            
             $product->name          = $request->name;
+            $product->name_tax      = $request->nameTax;
             $product->qty           = $request->qty;
             $product->price         = $request->price;
             $product->weight        = $request->weight;

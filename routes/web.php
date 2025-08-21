@@ -92,6 +92,8 @@ Route::middleware('admin-auth')->group(function () {
     Route::get('/get-products-by-category-id',  [ProductController::class, 'getProductsByCategoryId'])->name('get-products-by-category-id');
     Route::get('/empty',  [OrdersController::class, 'empty'])->name('empty');
     Route::get('/get-order-by-id-salecare',  [OrdersController::class, 'getOrderByIdSalecare'])->name('get-order-by-id-salecare');
+    Route::get('/thong-ke-san-pham-theo-don',  [OrdersController::class, 'reportProductByOrder'])->name('report-product-by-order');
+    
 
     Route::get('/cap-nhat-thanh-vien/{id}',[UserController::class,'viewUpdate'])->name('update-user');
     Route::get('/delete-user/{id}',  [UserController::class, 'delete'])->name('delete-user');
@@ -213,6 +215,8 @@ Route::get('/filter-total-digital',  [HomeController::class, 'ajaxFilterDashboar
 
 Route::get('/test',  [TestController::class, 'crawlerGroup'])->name('test');
 Route::get('/updateGHTK',  [TestController::class, 'updateStatusOrderGHTK'])->name('updateGHTK');
+Route::get('/ghtk',  [TestController::class, 'ghtkToShipping'])->name('toShipping');
+
 
 Route::get('/hiep',  [TestController::class, 'saveDataHiep'])->name('hiep');
 Route::get('/hieu',  [TestController::class, 'hieu'])->name('hieu');
@@ -220,7 +224,7 @@ Route::get('/hieu',  [TestController::class, 'hieu'])->name('hieu');
 
 Route::get('/xuat-file', [TestController::class, 'export']);
 Route::get('/tax', [TestController::class, 'exportTaxV2']);
-Route::get('/wake-up', [TestController::class, 'wakeUp']);
+Route::get('/make', [TestController::class, 'wakeUp']);
 
 Route::get('/fix', [TestController::class, 'fix']);
 

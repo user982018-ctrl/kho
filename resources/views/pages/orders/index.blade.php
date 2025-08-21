@@ -1,7 +1,6 @@
 @extends('layouts.default')
 @section('content')
 <div class="tbl_mobile body flex-grow-1 px-3">
-    <div class="container-lg">
 
     @if ($errors->any())
         <div class="col-sm-12">
@@ -34,20 +33,22 @@
             </button>
         </div>
     </div>
-    </div>
+</div>
 @endif
 
-        <div class="card mb-4">
-            <div class="card-header"><strong>Quản lý đơn hàng</strong> </div>
-            <div class="card-body p-0">
-                <div class="example mt-0">
+    <div class="card mb-4">
+        <h4 class="card-header">
+            <a href="{{route('order')}}"><strong>Quản lý đơn hàng</strong> </a>
+        </h4>
+        <div class="card-body p-0">
+            <div class="example mt-0">
 
-                @include('pages.orders.content')
+            @include('pages.orders.content')
 
-                </div>
             </div>
         </div>
     </div>
+
 </div>
 <script>
   $(document).ready(function() {

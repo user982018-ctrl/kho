@@ -15,7 +15,7 @@
   }
 </style>
 
-<?php $teleNhacTN = $leadSale = $id = $name = $member = $membersStr = $teleCskhData = $teleCreateOder = $teleHotData 
+<?php $teleNhacTNCskh = $teleNhacTN = $leadSale = $id = $name = $member = $membersStr = $teleCskhData = $teleCreateOder = $teleHotData 
     = $teleBotToken = $teleCreateOderByCSKH = $teleNotifyCSKH = '';
     $status = 1;
     $isShareDataCSKH = 0;

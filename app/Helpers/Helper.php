@@ -28,6 +28,12 @@ setlocale(LC_TIME, 'vi_VN.utf8');
 
 class Helper
 {
+
+    public static function getNameProductById($id)
+    {
+        return Product::find($id);
+    }
+
     public static function getSrcByPermission($user, $req)
     {
         $srcIDs = [];
@@ -1213,7 +1219,7 @@ class Helper
     public static function getAssignSaleByGroup($group)
     {
         $routeName = Route::currentRouteName();
-        Log::channel('ladi')->info('$routeName: ' . $routeName);
+        // Log::channel('ladi')->info('$routeName: ' . $routeName);
         $saleOfGroup = $group->sales->where('type_sale', 1);
 
         /**lấy user chỉ định bằng 1 trong list sale của group*/

@@ -1409,7 +1409,17 @@ class HomeController extends Controller
             $orderNew = $totalNew = $contactNew = $avgNew = $rateNew = 0;
             $orderOld = $totalOld = $contactOld = $avgOld = $rateOld = 0;
             /** new */
-            $new = $data['new_customer'];
+            if (!isset($data['new_customer'])) {
+                $new = $listSrc[$k]['new_customer'] = [
+                    'count_order' => 0,
+                    'total' => 0,
+                    'contact' => 0,
+                    'qty' => 0,
+                ];
+            } else {
+                $new = $data['new_customer'];
+            }
+            
             $orderNew = $new['count_order'];
             $totalNew = $new['total'];
             $contactNew = $new['contact'];
@@ -1421,8 +1431,8 @@ class HomeController extends Controller
             } else {
                 $rateNew =  round($orderNew * 100, 2);
             }
-            $listSrc[$k]['new_customer']['avg'] = $avgNew;
-            $listSrc[$k]['new_customer']['rate'] = $rateNew;
+            $listSrc[$k]['new_customer']['avg'] = round($avgNew, 0);
+            $listSrc[$k]['new_customer']['rate'] = round($rateNew, 2);
 
             /** old */
             $old = $data['old_customer'];
@@ -1437,8 +1447,8 @@ class HomeController extends Controller
             } else {
                 $rateOld = round($orderOld * 100, 2);
             }
-            $listSrc[$k]['old_customer']['avg'] = $avgOld;
-            $listSrc[$k]['old_customer']['rate'] = $rateOld;
+            $listSrc[$k]['old_customer']['avg'] = round($avgOld, 0);
+            $listSrc[$k]['old_customer']['rate'] = round($rateOld, 2);
 
             $avgSum = $rateSum = $totalSum = 0;
             $totalSum = $totalNew + $totalOld;
@@ -1607,7 +1617,7 @@ class HomeController extends Controller
        return $result;
     }
 
-      public function getReportUserDigital($digital, $dataFilter) 
+    public function getReportUserDigital($digital, $dataFilter) 
     {
         $newTotal = $oldTotal = $avgSum = $oldCountOrder= $newCountOrder = 0;
         $dataFilter['mkt'] = $digital['id'];
@@ -1791,7 +1801,7 @@ class HomeController extends Controller
     {
         $result = [];
         $list = SaleCare::select('src_id', 'id', 'created_at', 'group_id', 'assign_user', 'old_customer');
-
+        
         if (isset($req['daterange']) || !empty($req->daterange)) {
             $dateRange = (isset($req['daterange'])) ? $req['daterange'] : $req->daterange;
 
@@ -1808,7 +1818,7 @@ class HomeController extends Controller
             $list = $list->whereDate('created_at', '>=', $dateBegin)
                 ->whereDate('created_at', '<=', $dateEnd);
         }
-
+       
         if (isset($req['group']) || !empty($req->group)) {
             $groupId = (isset($req['group'])) ? $req['group'] : $req->group;
             $list = $list->where('group_id', $groupId);
@@ -1821,7 +1831,7 @@ class HomeController extends Controller
                 $list = $list->whereIn('assign_user', $listSale->pluck('id')->toArray());
             }
         }
-
+         
         if (isset($req->type_customer) && (int)$req->type_customer != -1) {
             $list = $list->where('old_customer', $req->type_customer);
         }

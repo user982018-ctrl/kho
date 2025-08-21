@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css">
 <style>
     #laravel-notify .notify {
       z-index: 9999;
@@ -54,10 +55,7 @@
     overflow-y: scroll;
   }
 
-  #myModal .modal-dialog .modal-content {
-    height: 100%;
-    /* overflow: scroll; */
-  }
+
   .filter-order .daterange {
     min-width: 230px;
   }
@@ -77,19 +75,65 @@
     text-decoration: none;
     color: unset;
   }
- 
+      .select2-container {
+        width: 100% !important;
+    }
+    /* .select2-selection__rendered { */
+  .result-TN-col .select-assign, .result-TN-col .select2-container--default .select2-selection--single , .result-TN {
+      background-color: inherit !important;
+      border: none;
+  }
+
+  .selectedClass .select2-container {
+      box-shadow: rgb(0, 123, 255) 0px 1px 1px 1px;
+  }
+
+  .form-control {
+    line-height: unset;
+  }
+  
+  .row > * {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+  .btn.active {
+    border-color: #0f0;
+  }
+  .modal-dialog .modal-content {
+    height: 100%;
+    /* overflow: scroll; */
+  }
+  .modal-dialog,
+.modal-content {
+    /* 80% of window height */
+    height: 90%;
+}
+iframe {
+  height: 100%;
+}
+
+.modal-body {
+    /* 100% = dialog height, 120px = header + footer */
+    max-height: calc(100% - 120px);
+    overflow-y: scroll;
+}
+
 </style>
 
 <?php 
+  $active       = '';
+  $routeName    = \Route::getCurrentRoute()->uri;
+  $asRouteName  = (\Route::getCurrentRoute()->action['as']) ?? null;
+
   $checkAll = isFullAccess(Auth::user()->role);
   $isLeadSale = Helper::isLeadSale(Auth::user()->role);
 
   $listStatus = Helper::getListStatus();
   $styleStatus = [
-    0 => 'red',
-    1 => 'white',
-    2 => 'orange',
-    3 => 'green',
+    0 => 'red', // huy
+    1 => 'white', // chua giao
+    2 => 'orange', // dang giao
+    3 => 'green', // thanh cong
   ];
   $listSale = Helper::getListSale(); 
   $checkAll = isFullAccess(Auth::user()->role);  
@@ -104,17 +148,28 @@
 <script type="text/javascript" src="{{asset('public/js/moment.js')}}"></script>
 <link rel="stylesheet" type="text/css" href="{{asset('public/css/daterangepicker.css')}}" /> 
 
-<div class="tab-content rounded-bottom">
 <div class="tab-pane p-3 active preview" role="tabpanel" id="preview-1001">
-  <form action="{{route('order')}}" class="mb-1">
-    <div class="row mb-1 filter-order">
-      <div class="col-4 form-group daterange mb-1">
+  <form action="{{route('order')}}" class="mb-1" id="orderForm">
+    <div class="row mb-1 " style="justify-content: space-between;">
+      <div class="col-12 col-sm-6 col-md-3 form-group daterange mb-1">
         <input id="daterange" class="btn btn-outline-secondary" type="text" name="daterange" />
       </div>
-
+      <div class="col-12 col-sm-6 col-md-3 form-group" style="display: flex; justify-content: flex-end;">
+        <input style="width: 70%" name="search" type="text"  value="{{ isset($search) ? $search : null}}" class="form-control" placeholder="Nhập số điện thoại, tên khách hàng, mã vận đơn">
+      {{-- </div>
+      <div class="col-12 col-sm-6 col-md-3 col-lg-3 form-group" style="max-width: 180px;" > --}}
+        <button type="submit" class="btn btn-outline-primary" style="margin-left: 10px;">
+          <svg class="icon me-2">
+            <use xlink:href="{{asset('public/vendors/@coreui/icons/svg/free.svg#cil-filter')}}"></use>
+          </svg>Lọc
+        </button>
+      </div>
+    </div>
+    
+    <div class="row mb-1 filter-order">
       @if ($checkAll || $isLeadSale)
       <div class="col-xs-12 col-sm-6 col-md-2 form-group mb-1">
-        <select name="sale" id="sale-filter" class="form-select" aria-label="Default select example">
+        <select name="sale" id="sale-filter" class="form-select" style="padding-right: 12px !important;padding-left: 12px !important;">
           <option value="999">--Chọn Sale--</option>
           @if (isset($sales))
             @foreach($sales as $sale)
@@ -126,7 +181,7 @@
       @endif
 
       <div class="col-xs-12 col-sm-6 col-md-2 form-group mb-1">
-        <select name="status" id="status-filter" class="form-select" aria-label="Default select example">
+        <select name="status" id="status-filter" class="form-select" style="padding-right: 12px !important;padding-left: 12px !important;">
           <option value="999">--Trạng Thái--</option>
           <option value="1">Chưa giao vận</option>
           <option value="2">Đang giao</option>
@@ -134,45 +189,45 @@
           <option value="0">Huỷ</option>
         </select>
       </div>
-      
+
       <div class="col-xs-12 col-sm-6 col-md-2 form-group mb-1">
-        <select name="category" id="category-filter" class="form-select" aria-label="Default select example">
+        <select name="product" id="product-filter" class="form-select" style="padding-right: 12px !important;padding-left: 12px !important;">
           <option value="999">--Chọn sản phẩm --</option>
-          @if (isset($category))
-            @foreach($category as $cate)
-            <option value="{{$cate->id}}">{{$cate->name}}</option>
+          @if (isset($products))
+            @foreach($products as $product)
+            <option value="{{$product->id}}">{{$product->name}}</option>
             @endforeach
           @endif
         </select>
       </div>
     </div>
-    
-    <button type="submit" class="btn btn-outline-primary"><svg class="icon me-2">
-      <use xlink:href="{{asset('public/vendors/@coreui/icons/svg/free.svg#cil-filter')}}"></use>
-    </svg>Lọc</button>
-    <a class="btn btn-outline-danger" href="{{route('order')}}"><strong>X</strong></a>
   </form>
   <div class="row ">
     <div class="col-12">
       
-      @if (isset($list))
+       @if (isset($list))
+      <?php $activeBtnOrder = $activeBtnProduct = '';
+        $hrefOrder = $hrefProduct = url()->full();
+        $params = request()->route()->parameters();
+        if ($routeName == 'don-hang') {
+          $activeBtnOrder = 'active';
+          $hrefProduct = route('report-product-by-order', array_merge(request()->route()->parameters(), request()->query()));
+          // $hrefProduct = route('report-product-by-order', $params);
+        } else if ($routeName == 'thong-ke-san-pham-theo-don'){
+          $activeBtnProduct = 'active';
+          $hrefOrder = request()->route('order', $params);
+        }
+        // $hrefProduct = url()->full();
+      ?> 
       <hr>
       <button type="button" class="btn">Tổng đơn: {{$totalOrder}}</button>
-      <button type="button" class="btn">Tổng sản phẩm: {{$sumProduct}}</button>
+      <button type="button" class="btn btn-primary "><a class="orderModal"
+        data-target="#createOrder" data-toggle="modal" data-href="{{$hrefProduct}}"
+        style="color:#fff;"> Tổng sản phẩm: {{$sumProduct}}</a></button>
       @endif
+  </div>
+    </div>
     
-    </div>
-    <div class="col-8 ">
-      <form class ="row tool-bar" action="{{route('search-order')}}" method="get">
-        <div class="col-3">
-          <input class="form-control" value="{{ isset($search) ? $search : null}}" name="search" placeholder="Tìm đơn hàng..." type="text">
-        </div>
-        <div class="col-3 " style="padding-left:0;">
-          <button type="submit" class="btn btn-primary"><svg class="icon me-2">
-            <use xlink:href="{{asset('public/vendors/@coreui/icons/svg/free.svg#cil-search')}}"></use>
-          </svg>Tìm</button>
-      </form>
-    </div>
   </div>
 </div>
 
@@ -248,7 +303,7 @@
   </table>
   {{ $list->appends(request()->input())->links('pagination::bootstrap-5') }}
 </div>
-</div>
+
   
 <div class="modal fade" id="notify-modal" tabindex="-1">
     <div class="modal-dialog" role="document">
@@ -262,7 +317,19 @@
         </div>
     </div>
 </div>
-
+<div id="createOrder" class="modal fade" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content ">
+        <div class="modal-header">
+            <h5 class="modal-title">Thống kê sản phẩm theo đơn hàng</h5>
+            <button type="button" id="close-main" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <iframe frameborder="0"></iframe>
+        </div>
+    </div>
+</div>
 <script>
   $.urlParam = function(name){
     var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
@@ -295,34 +362,34 @@
   }
 
   let product = $.urlParam('product') 
-  console.log(product)
   if (product) {
-    var _token      = $("input[name='_token']").val();
-      $.ajax({
-            url: "{{ route('get-products-by-category-id') }}",
-            type: 'GET',
-            data: {
-                _token: _token,
-                categoryId: category
-            },
-            success: function(data) {
-             
-              let str = '';
-              str += '<div class="col-xs-12 col-sm-6 col-md-2 form-group mb-1">'
-                + '<select name="product" id="product-filter" class="form-select" aria-label="Default select example">'
-                + '<option value="999">--Sản phẩm (Tất cả)--</option>';
-                data.forEach(item => {
-                  // console.log(item['id'])
-                  selected = item['id'] == product ? 'selected' : '';
-                  str += '<option ' +  selected +' value="' + item['id'] + '">' + item['name'] + '</option>';
-                  });
-              str  += '</select>'
-                + '</div>';
-
-                $(str).appendTo(".filter-order");
-            }
-        });
     $('#product-filter option[value=' + product +']').attr('selected','selected');
+    if (product == 83) {
+      const attributesJson = '<?php echo $listAttribute;?>';
+      data = JSON.parse(attributesJson);
+      Object.keys(data).forEach(key => {
+        let str = '';
+        var idAttr = 'attr_' + data[key]['id'];
+        str += '<div class="col-xs-12 col-sm-6 col-md-2 form-group mb-1">'
+          + '<select name="'+ idAttr +'" id="'+ idAttr +'-filter" class="form-select">'
+          + '<option value="999">--'+ data[key]['name'] +' (Tất cả)--</option>';
+          data[key]['values'].forEach(value => {
+            str += '<option value="' + value['id'] + '">' + value['value'] + '</option>';
+          });
+        str  += '</select>'
+          + '</div>';
+
+        $(str).appendTo(".filter-order");
+      });
+    }
+  }
+  let product1 = $.urlParam('attr_1') 
+  if (product1 ) {
+    $('#attr_1-filter option[value=' + product1 +']').attr('selected','selected');
+  }
+  let product2 = $.urlParam('attr_2') 
+  if (product2 ) {
+    $('#attr_2-filter option[value=' + product2 +']').attr('selected','selected');
   }
 
 </script>
@@ -372,10 +439,9 @@ $(document).ready(function() {
           
             let str = '';
             str += '<div class="col-xs-12 col-sm-6 col-md-2 form-group mb-1">'
-              + '<select name="product" id="product-filter" class="form-select" aria-label="Default select example">'
+              + '<select name="product" id="product-filter" class="form-select">'
               + '<option value="999">--Sản phẩm (Tất cả)--</option>';
               data.forEach(item => {
-                // console.log(item['id'])
                 str += '<option value="' + item['id'] + '">' + item['name'] + '</option>';
                 });
             str  += '</select>'
@@ -390,37 +456,6 @@ $(document).ready(function() {
   });
 
 });
-</script>
-
-<script>
-   const mrNguyen = [
-    {
-        id : '332556043267807',
-        name_page : 'Rước Đòng Organic Rice - Tăng Đòng Gấp 3 Lần',
-    },
-    {
-        id : '318167024711625',
-        name_page : 'Siêu Rước Đòng Organic Rice- Hàm Lượng Cao X3',
-    },
-    {
-        id : '341850232325526',
-        name_page : 'Siêu Rước Đòng Organic Rice - Hiệu Quả 100%',
-    },
-    {
-        id : 'mua4tang2',
-        name_page : 'Ladipage mua4tang2',
-    },
-    {
-        id : 'giamgia45',
-        name_page : 'Ladipage giamgia45',
-    }
-];
-const mrTien = [
-    {
-        id : 'mua4-tang2',
-        name_page : 'Ladipage mua4-tang2',
-    }
-];
 
 let mkt = $.urlParam('mkt') 
 if (mkt) {
@@ -447,32 +482,86 @@ if (src) {
     // }
     $('#src-filter option[value=' + src +']').attr('selected','selected');
 }
-  // $("#mkt-filter").change(function() {
-  //   var selectedVal = $(this).find(':selected').val();
-  //   var selectedText = $(this).find(':selected').text();
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
+<script>
+  $(function() {
+      $('#product-filter').select2();
+  });
+ 
+  $("#product-filter").change(function() {
+      var selectedVal = $(this).find(':selected').val();
+      var selectedText = $(this).find(':selected').text();
+      
+      if (selectedVal == 83) {
+        const attributesJson = '<?php echo $listAttribute;?>';
+        data = JSON.parse(attributesJson);
+        Object.keys(data).forEach(key => {
+          let str = '';
+          var idAttr = 'attr_' + data[key]['id'];
+          str += '<div class="col-xs-12 col-sm-6 col-md-2 form-group mb-1">'
+            + '<select name="'+ idAttr +'" id="'+ idAttr +'-filter" class="form-select">'
+            + '<option value="999">--'+ data[key]['name'] +' (Tất cả)--</option>';
+            data[key]['values'].forEach(value => {
+              str += '<option value="' + value['id'] + '">' + value['value'] + '</option>';
+            });
+          str  += '</select>'
+            + '</div>';
+
+          $(str).appendTo(".filter-order");
+        });
+
+        // $.ajax({
+        //   url: "{{ route('attribute') }}",
+        //   type: 'GET',
+        //   success: function(data) {
+        //     Object.keys(data).forEach(key => {
+        //       let str = '';
+        //       var idAttr = 'attr_' + data[key]['id'];
+        //       str += '<div class="col-xs-12 col-sm-6 col-md-2 form-group mb-1">'
+        //         + '<select name="'+ idAttr +'" id="'+ data[key]['id'] +'-filter" class="form-select">'
+        //         + '<option value="999">--'+ data[key]['name'] +' (Tất cả)--</option>';
+        //         data[key]['values'].forEach(value => {
+        //           str += '<option value="' + value['id'] + '">' + value['value'] + '</option>';
+        //         });
+        //       str  += '</select>'
+        //         + '</div>';
+
+        //       $(str).appendTo(".filter-order");
+        //     });
+        //   }
+        // });
+      }
+  });
+</script>
+<script>
+document.getElementById('orderForm').addEventListener('submit', function (e) {
+    const inputs = this.querySelectorAll('input');
+    inputs.forEach(input => {
+        if (input.value === '') {
+            input.disabled = true; // loại bỏ khỏi dữ liệu gửi đi
+        }
+    });
+
+    const selects = this.querySelectorAll('select');
+    selects.forEach(select => {
+      if (select.value === '999') {
+        select.disabled = true; // không gửi giá trị này
+      }
+    });
     
-  //   let str = '<option value="999">--Tất cả Nguồn--</option>';
-  //   $('.src-filter').show('slow');
-
-  //   if ($('#src-filter').children().length > 0) {
-  //     $('#src-filter').children().remove();
-  //   }
-
-  //   if (selectedVal == 1) {
-  //     mrNguyen.forEach (function(item) {
-  //         console.log(item);
-  //         str += '<option value="' + item.id +'">' + item.name_page +'</option>';
-  //     })
-  //     $(str).appendTo("#src-filter");
-  //   } else if (selectedVal == 2) {
-  //     mrTien.forEach (function(item) {
-  //         console.log(item);
-  //         str += '<option value="' + item.id +'">' + item.name_page +'</option>';
-  //     });
-  //     $(str).appendTo("#src-filter");
-  //   } else {
-  //     $('.src-filter').hide('slow');
-  //     $('#src-filter').children().remove();
-  //   }
-  // });
+    return;
+});
+</script>
+<script src="{{asset('public/newCDN/js/bootstrap.min.js')}}"></script>
+<script type="text/javascript" src="{{asset('public/js/moment.js')}}"></script>
+<script>
+  $('.orderModal').on('click', function () {
+    var href = $(this).data('href');
+    if (href) {
+        var link = "{{URL::to('/update-order/')}}";
+        $("#createOrder iframe").attr("src", href);
+    }
+  });
 </script>

@@ -135,13 +135,17 @@ return [
             'driver' => 'single',
             'path' => storage_path('logs/a.log'),
         ],
-        'b' => [
+        'ladi' => [
             'driver' => 'single',
             'path' => storage_path('logs/ladi.log'),
         ],
         'c' => [
             'driver' => 'single',
             'path' => storage_path('logs/check_src.log'),
+        ],
+        'd' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/d.log'),
         ],
     ],
 

@@ -24,6 +24,314 @@ use App\Exports\UsersExport;
 class TestController extends Controller
 {
   use WithoutMiddleware;
+  public function updateStatusOrderGHTK() 
+  {
+    
+     Log::channel('d')->info('run log');
+    $orders = Orders::join('shipping_order', 'shipping_order.order_id', '=', 'orders.id')
+      ->where('orders.status', 2) //dang giao
+      ->where('shipping_order.vendor_ship', 'GHTK')
+      ->get('orders.*');
+
+    foreach ($orders as $order) {
+
+      $endpoint = "https://services.giaohangtietkiem.vn/services/shipment/v2/" . $order->shippingOrder->order_code;
+      $token = '1L0DDGVPfiJwazxVW0s7AQiUhRH1hb7E1s63rtd';
+      $response = Http::withHeaders(['token' => $token])->get($endpoint);
+      $response = $response->json();
+
+      if (isset($response['success']) && $response['success']) {
+        $data     = $response['order'];
+        switch ($data['status']) {
+          #chờ lây hàng
+          case 1:
+          case 2:
+          case 7:
+          case 12:
+          case 8:
+            $order->status = 1;
+            break;
+          #chờ lây hàng
+            
+
+          # đang giao
+          case 3:
+          case 10:
+          case 4:
+          case 9:
+            $order->status = 2;       
+            break;
+          # đang giao
+    
+          #thành công
+          case 5:
+          // case 6:
+            $order->status = 3;
+            break;
+
+          #hoàn/huỷ
+          case 20:
+          case 21:
+          case 11:
+          case -1:
+            $order->status = 0;
+            break;
+          
+          default:
+            # đang giao
+            $order->status = 2;
+            break;
+        }
+        
+        $order->save();
+
+        //check đơn này đã có data chưa
+        $issetOrder = Helper::checkOrderSaleCare($order->id);
+
+        //getOriginal lấy trực tiếp field từ db
+        // status = 3 = 'hoàn tất', tạo data tác nghiệp sale
+        if ($order->getOriginal('status') == 3) {
+
+          $orderTricho = $order->saleCare;
+          $chatId = $groupId = '';
+          $saleCare = $order->saleCare;
+
+          /** dành cho những data TN và đơn hàng khi chưa nhóm group */
+          if ($order->saleCare && $saleCare->group) {
+
+            $group = $saleCare->group;
+            $chatId = $group->tele_cskh_data;
+            $groupId = $group->id;
+            /** có tick chia đều team cskh thì chạy tìm người để phát data cskh
+             *  ngược lại ko tick thì đơn của sale nào người đó care
+             * nếu chọn chia đều team CSKH thì mặc định luôn có sale nhận data
+             */
+
+            // dd($group);
+            if ($group->is_share_data_cskh) {
+              
+              $assgin_user = Helper::getAssignCskhByGroup($group, 'cskh')->id_user;
+            } else {
+              $assgin_user = $order->saleCare->assign_user;
+              $user = $order->saleCare->user;
+
+              //tài khoản đã khoá hoặc chặn nhận data => tìm sale khác trong nhóm
+              if (!$user->is_receive_data || !$user->status) {
+                $assgin_user = Helper::getAssignSaleByGroup($group, 'cskh')->id_user;
+              }
+            }
+
+          } else if (!empty($orderTricho->group_id) && $orderTricho->group_id == 'tricho') {
+            $groupId = 'tricho';
+            
+            //id_CSKH_tricho 4234584362
+            $chatId = '-4286962864'; 
+            $assgin_user = $order->assign_user;
+          } else {
+            $assgin_user = 50;
+            //cskh 4128471334
+            $chatId = '-4558910780';
+            // $chatId = '-4128471334';
+          }
+
+          $typeCSKH = Helper::getTypeCSKH($order);
+          $pageName = $order->saleCare->page_name;
+          $pageId = $order->saleCare->page_id;
+          $pageLink = $order->saleCare->page_link;
+
+          $sale = new SaleController();
+          $data = [
+            'id_order' => $order->id,
+            'sex' => $order->sex,
+            'name' => $order->name,
+            'phone' => $order->phone,
+            'address' => $order->address,
+            'assgin' => $assgin_user,
+            'page_name' => $pageName,
+            'page_id' => $pageId,
+            'page_link' => $pageLink,
+            'group_id' => $groupId,
+            'chat_id' => $chatId,
+            'type_TN' => $typeCSKH, 
+            'old_customer' => 1
+          ];
+
+          if ($order->saleCare->src_id) {
+            $data['src_id'] = $order->saleCare->src_id;
+          } else if ($order->saleCare->type != 'ladi') {
+            $pageSrc = SrcPage::where('id_page', $order->saleCare->page_id)->first();
+            if ($pageSrc) {
+              $data['src_id'] = $pageSrc->id;
+            }
+          }
+
+          // dd($data);
+
+          if ($issetOrder || $order->id) {
+            $data['old_customer'] = 1;
+          }
+
+          $request = new \Illuminate\Http\Request();
+          $request->replace($data);
+          $sale->save($request);
+        }
+      }
+    }
+  }
+
+  public function ghtkToShipping() 
+  {
+    $orders = Orders::join('shipping_order', 'shipping_order.order_id', '=', 'orders.id')
+      ->where('orders.status', 1) //chua giao
+      ->where('shipping_order.vendor_ship', 'GHTK')
+      ->get('orders.*');
+
+    foreach ($orders as $order) {
+
+      $endpoint = "https://services.giaohangtietkiem.vn/services/shipment/v2/" . $order->shippingOrder->order_code;
+      $token = '1L0DDGVPfiJwazxVW0s7AQiUhRH1hb7E1s63rtd';
+      $response = Http::withHeaders(['token' => $token])->get($endpoint);
+      $response = $response->json();
+
+      if (isset($response['success']) && $response['success']) {
+        $data     = $response['order'];
+        switch ($data['status']) {
+          #chờ lây hàng
+          case 1:
+          case 2:
+          case 7:
+          case 12:
+          case 8:
+            $order->status = 1;
+            break;
+          #chờ lây hàng
+            
+
+          # đang giao
+          case 3:
+          case 10:
+          case 4:
+          case 9:
+            $order->status = 2;       
+            break;
+          # đang giao
+    
+          #thành công
+          case 5:
+          // case 6:
+            $order->status = 3;
+            break;
+
+          #hoàn/huỷ
+          case 20:
+          case 21:
+          case 11:
+          case -1:
+            $order->status = 0;
+            break;
+          
+          default:
+            # đang giao
+            $order->status = 2;
+            break;
+        }
+        
+        $order->save();
+
+        //check đơn này đã có data chưa
+        $issetOrder = Helper::checkOrderSaleCare($order->id);
+
+        //getOriginal lấy trực tiếp field từ db
+        // status = 3 = 'hoàn tất', tạo data tác nghiệp sale
+        if ($order->getOriginal('status') == 3) {
+
+          $orderTricho = $order->saleCare;
+          $chatId = $groupId = '';
+          $saleCare = $order->saleCare;
+
+          /** dành cho những data TN và đơn hàng khi chưa nhóm group */
+          if ($order->saleCare && $saleCare->group) {
+
+            $group = $saleCare->group;
+            $chatId = $group->tele_cskh_data;
+            $groupId = $group->id;
+            /** có tick chia đều team cskh thì chạy tìm người để phát data cskh
+             *  ngược lại ko tick thì đơn của sale nào người đó care
+             * nếu chọn chia đều team CSKH thì mặc định luôn có sale nhận data
+             */
+
+            // dd($group);
+            if ($group->is_share_data_cskh) {
+              
+              $assgin_user = Helper::getAssignCskhByGroup($group, 'cskh')->id_user;
+            } else {
+              $assgin_user = $order->saleCare->assign_user;
+              $user = $order->saleCare->user;
+
+              //tài khoản đã khoá hoặc chặn nhận data => tìm sale khác trong nhóm
+              if (!$user->is_receive_data || !$user->status) {
+                $assgin_user = Helper::getAssignSaleByGroup($group, 'cskh')->id_user;
+              }
+            }
+
+          } else if (!empty($orderTricho->group_id) && $orderTricho->group_id == 'tricho') {
+            $groupId = 'tricho';
+            
+            //id_CSKH_tricho 4234584362
+            $chatId = '-4286962864'; 
+            $assgin_user = $order->assign_user;
+          } else {
+            $assgin_user = 50;
+            //cskh 4128471334
+            $chatId = '-4558910780';
+            // $chatId = '-4128471334';
+          }
+
+          $typeCSKH = Helper::getTypeCSKH($order);
+          $pageName = $order->saleCare->page_name;
+          $pageId = $order->saleCare->page_id;
+          $pageLink = $order->saleCare->page_link;
+
+          $sale = new SaleController();
+          $data = [
+            'id_order' => $order->id,
+            'sex' => $order->sex,
+            'name' => $order->name,
+            'phone' => $order->phone,
+            'address' => $order->address,
+            'assgin' => $assgin_user,
+            'page_name' => $pageName,
+            'page_id' => $pageId,
+            'page_link' => $pageLink,
+            'group_id' => $groupId,
+            'chat_id' => $chatId,
+            'type_TN' => $typeCSKH, 
+            'old_customer' => 1
+          ];
+
+          if ($order->saleCare->src_id) {
+            $data['src_id'] = $order->saleCare->src_id;
+          } else if ($order->saleCare->type != 'ladi') {
+            $pageSrc = SrcPage::where('id_page', $order->saleCare->page_id)->first();
+            if ($pageSrc) {
+              $data['src_id'] = $pageSrc->id;
+            }
+          }
+
+          // dd($data);
+
+          if ($issetOrder || $order->id) {
+            $data['old_customer'] = 1;
+          }
+
+          $request = new \Illuminate\Http\Request();
+          $request->replace($data);
+          $sale->save($request);
+        }
+      }
+    }
+  }
+
     public function hieu()
   {
     $pageOfHieu = SrcPage::where('user_digital', 117)->where('type', 'pc')->get();
@@ -531,7 +839,7 @@ class TestController extends Controller
 // dd($pages);
       foreach ($pages as $page) {
         //   dd($page);
-        //  if ($page->id_page != '689087570959486') {
+        //  if ($page->id_page != '567750756432094') {
         
         //      continue;
         //  }
@@ -561,7 +869,7 @@ class TestController extends Controller
 
       $endpoint = "https://pancake.vn/api/v1/pages/$pIdPan/conversations";
       $today    = strtotime(date("Y/m/d H:i"));
-      $before   = strtotime ( '-48 hour' , strtotime ( date("Y/m/d H:i") ) ) ;
+      $before   = strtotime ( '-4 hour' , strtotime ( date("Y/m/d H:i") ) ) ;
       $before   = date ( 'Y/m/d H:i' , $before );
       $before   = strtotime($before);
 
@@ -827,8 +1135,8 @@ public function export()
   {
     $sale     = new SaleController();
     $req = new Request();
-    $req['daterange'] = ['30/06/2025', '11/08/2025'];
-    $req['sale'] = '97';
+    $req['daterange'] = ['01/06/2025', '01/08/2025'];
+    $req['sale'] = '123';
     // $req['typeDate'] = '2';
     // $sales = ['50','74'];
 
@@ -837,7 +1145,7 @@ public function export()
     $list->whereNull('id_order');
     $list->where('old_customer', 0);
     // $list->where('is_duplicate', 0);
-    $list->where('group_id', '5');
+    // $list->where('group_id', '5');
     // $list->paginate(300, ['*'], 'page', 3);
     // $list->whereIn('assign_user', $sales);
     // dd($list->get());
@@ -848,12 +1156,12 @@ public function export()
     foreach ($list->get() as $data) {
 
       $tnCan = $data->TN_can;
-      if ($data->listHistory) {
-        foreach ($data->listHistory as $his) {
-          $tnCan .= date_format($his->created_at,"d-m-Y ") . ': ' . $his->note . ', ';
-        }
+      // if ($data->listHistory) {
+      //   foreach ($data->listHistory as $his) {
+      //     $tnCan .= date_format($his->created_at,"d-m-Y ") . ': ' . $his->note . ', ';
+      //   }
 
-      }
+      // }
       $dataExport[] = [
         $data->full_name,
         $data->phone,
@@ -863,84 +1171,68 @@ public function export()
       ];
     }
 
-    return Excel::download(new UsersExport($dataExport), 'HaVy-data-new.xlsx');
+    return Excel::download(new UsersExport($dataExport), 'diem.xlsx');
   }
-  public function wakeUp() 
-  {$listSc = SaleCare::whereNotNull('result_call')
+  
+  public function wakeUp()
+  {
+    $listSc = SaleCare::whereNotNull('result_call')
       ->whereNotNull('type_TN')
       ->where('result_call', '!=', 0)
       ->where('result_call', '!=', -1)
       ->where('has_TN', 1)
+      ->where('created_at', '>' , '2025-06-01')
+      ->limit(100)
+      // ->where('phone', '0824123022')
+      ->orderBy('id', 'DESC')
       ->get();
 
     // dd($listSc);
     foreach ($listSc as $sc) {
-      // echo "$sc->id " . "<br>";
-      
       $call = $sc->call;
-      // dd($call);
-
       if (empty($call->time)) {
         continue;
       }
 
       $time = $call->time;
-      $nameCall   = $call->callResult->name;
       $updatedAt  = $sc->time_update_TN;
       $isRunjob   = $sc->is_runjob;
-      $TNcan   = $sc->TN_can;
       $saleAssign   = $sc->user->real_name;
+
+      if (!$sc->user->status || !$sc->user->is_receive_data) {
+        continue;
+      }
       
       if (!$call || !$time || !$updatedAt || $isRunjob || !$saleAssign) {
         continue;
       }
       
       //cộng ngày update và time cuộc gọi
-      $newDate = strtotime("+$time hours", strtotime($updatedAt));
+      if ($sc->time_wakeup_TN) {
+        $newDate = strtotime($sc->time_wakeup_TN);
+      } else {
+        $newDate = strtotime("+$time hours", strtotime($updatedAt));
+      }
+
       if ($newDate <= time()) {
         $nextTN = $call->thenCall;
-       
-        
         if (!$nextTN) {
           continue;
         }
 
-        $chatId         = '-4286962864';
-        $tokenGroupChat = '7127456973:AAGyw4O4p3B4Xe2YLFMHqPuthQRdexkEmeo';
-        $group = $sc->group;
-
-
-        if ($group) {
-          $chatId = $group->tele_nhac_TN;
-          $tokenGroupChat =  $group->tele_bot_token;
+        //set lần gọi tiếp theo
+        if ($sc->type_TN != $nextTN->id) {
+          $sc->result_call = 0;
         }
 
-        //set lần gọi tiếp theo
-        $sc->type_TN = $nextTN->id;
-        $sc->result_call = 0;
+        // 24 id: nhắc lại
+        if ($nextTN->id != 24) {
+          $sc->type_TN = $nextTN->id;
+        }
+
         $sc->has_TN = 0;
         $sc->is_runjob = 1;
         $sc->save();
-
-        //gửi thông báo qua telegram
-        
-
-        // $group = $sc->group;
-    
-        $endpoint       = "https://api.telegram.org/bot$tokenGroupChat/sendMessage";
-        $client         = new \GuzzleHttp\Client();
-
-        $notiText       = "Khách hàng $sc->full_name sđt $sc->phone"
-          . "\nĐã tới thời gian tác nghiệp."
-          . "\nKết quả gọi trước đó: $nameCall"
-          . "\nGhi chú trước: $TNcan"
-          . "\nSale tác nghiệp: $saleAssign"; 
-
-          // dd($notiText);
-        $client->request('GET', $endpoint, ['query' => [
-          'chat_id' => $chatId, 
-          'text' => $notiText,
-        ]]);
       }
     }
   }

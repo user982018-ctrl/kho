@@ -28,6 +28,12 @@
                                                     <p class="error_msg" id="name"></p>
                                                 </div>
                                                 <div class="mb-3 col-4">
+                                                    <label class="form-label" for="nameTaxIP">Tên thuế</label>
+                                                    <input class="form-control" value="{{$product->name_tax}}" name="nameTax"
+                                                        id="nameTaxIP" type="text">
+                                                    <p class="error_msg" id="nameTax"></p>
+                                                </div>
+                                                <div class="mb-3 col-4">
                                                     <label class="form-label" for="priceIP">Giá</label>
                                                     <input class="form-control" value="{{$product->price}}" name="price"
                                                         id="priceIP">
@@ -290,7 +296,7 @@ $(document).ready(function() {
         var unit = $("input[name='unit']").val();
         var orderBy = $("input[name='orderBy']").val();
         let roles =  $("input[name='role']:checked").val();
-
+        var nameTax = $("input[name='nameTax']").val();
         // $("input[name='roles[]']:checked").each(function() {
         //     roles.push($(this).val());
         // });
@@ -301,6 +307,7 @@ $(document).ready(function() {
             data: {
                 _token: _token,
                 name: name,
+                nameTax,
                 price: price,
                 qty: qty,
                 id,

@@ -231,10 +231,6 @@
         border: none;
     }
 
-    /* .result-TN-col .select2-container--default .select2-selection--single {
-        border: none;
-    } */
-
     .selectedClass .select2-container {
         box-shadow: rgb(0, 123, 255) 0px 1px 1px 1px;
     }
@@ -465,10 +461,12 @@
                                     <i class="fa fa-save"></i>
                                 </a>
                             </div>
+                            
                             <select class="select-assign" name="assignTNSale_{{$item->id}}" data-sale_id="{{$item->id}}"
                                 data-assign_id='<?php echo ($item->assign_user) ? $item->assign_user : -1;?>'>
+                               
                             @if ($item->assign_user && $item->user && $item->user->status == 0) 
-                                <option> {{$item->user->real_name}} </option>
+                                <option selected value={{$item->user->id}}> {{$item->user->real_name}} </option>
                             @elseif (!$item->assign_user)
                                 <option value="0">None </option>
                             @endif
@@ -1921,7 +1919,7 @@ document.getElementById('saleForm').addEventListener('submit', function (e) {
         document.querySelectorAll('.select-assign').forEach(select => {
             const currentSaleId = parseInt(select.dataset.assign_id, 10);
             // Xóa các option cũ nếu cần
-            select.innerHTML = "";
+            // select.innerHTML = "";
 
             // Thêm các option từ array JSON
             sales.forEach(sale => {
@@ -1933,6 +1931,7 @@ document.getElementById('saleForm').addEventListener('submit', function (e) {
                 if (sale.id === currentSaleId) {
                     option.selected = true;
                 }
+                // select.insertAdjacentElement("afterend", option);
                 select.appendChild(option);
             });
         });

@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Helpers\Helper;
 use App\Helpers\HelperProduct;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\ProductController;
 use App\Models\Group;
 use App\Models\GroupUser;
 use App\Models\SaleCare;
@@ -25,6 +26,103 @@ use Illuminate\Validation\Rule;
 
 class OrdersController extends Controller
 {
+    public function reportProductByOrder(Request $req)
+    {
+        $rs = [];
+       
+        if ($req->search) {
+            $listCart = Orders::select('orders.*')
+                ->where('orders.name', 'like', '%' . $req->search . '%')
+                ->orWhere('orders.phone', 'like', '%' . $req->search . '%')
+                ->orderBy('orders.id', 'desc');
+
+            if ($listCart->count() == 0) {
+                $listCart = Orders::select('orders.*')->join('shipping_order', 'shipping_order.order_id','=', 'orders.id')
+                ->where('shipping_order.order_code', 'like', '%' . $req->search . '%')
+                ->orderBy('orders.id', 'desc');
+            }
+             
+        } else {
+            $listCart = $this->getListOrderByPermisson(Auth::user(), $req);
+             // ->pluck('id_product')
+            // ->toArray();
+        }   
+
+        foreach ($listCart->get() as $cart) {
+            $cartArr = json_decode($cart->id_product, true);
+            if (!$cartArr) {
+                continue;
+            }
+
+            foreach ($cartArr as $item) {
+                if ($item['id'] == 83 ) {
+                    if (isset($item['variantId']) && $item['variantId'] == 0) {
+                        $item['variantId'] = 3;
+                    }
+
+                    try {
+                        if (isset($item['variantId']) && isset($rs[$item['id']][$item['variantId']])) {
+                            $rs[$item['id']][$item['variantId']]['val'] += $item['val'];
+                        } else {
+                            $rs[$item['id']][$item['variantId']]['val'] = $item['val'];
+                            $rs[$item['id']][$item['variantId']]['variantId'] = $item['variantId'];
+                        }
+                    } catch (\Exception $e) {
+                        dd($item);
+                        return $e;
+                    }
+                    
+                } else {
+                    try {
+                        if (isset($rs[$item['id']])) {
+                            $rs[$item['id']]['val'] += $item['val'];
+                        } else {
+                            $rs[$item['id']]['val'] = $item['val'];
+                        }
+                    } catch (\Exception $e) {
+                        // dd($cart);
+                        return $e;
+                    }
+                }
+            }
+        }
+        
+        $lastData = [];
+        foreach ($rs as $k => $item) {
+            if ($k == 83) {
+                foreach ($item as $value) {
+                    $tmp = [];
+                    $tmp['name'] = trim(HelperProduct::getNameAttributeByVariantId($value['variantId']));
+                    $tmp['qty'] = (int)$value['val'];
+                    $lastData[] = $tmp;
+                }
+            } else {
+                $tmp = [];
+                $product = Helper::getNameProductById($k);
+                $tmp['name'] = trim($product->name);
+                $tmp['qty'] = (int)$item['val'];
+                $lastData[] = $tmp;
+            }
+        }
+        $lastData = json_encode($lastData);
+
+        $today = date("d/m/Y", time());
+        $p['daterange'] = [$today, $today];
+        $category = Category::where('status', 1)->get();
+        $products = Product::where('status', 1)->get();
+        $data       = $this->getListOrderByPermisson(Auth::user(), $p);
+        $sumProduct = $data->sum('qty');
+        $totalOrder = $data->count();
+        $list       = $data->paginate(50);
+        $sales      = Helper::getListSale()->get();
+        $prControler = new ProductController();
+        $listAttribute = $prControler->getAttributesProduct();
+        $listAttribute = json_encode($listAttribute);
+        return view('pages.orders.reportProduct')->with('sales', $sales)->with('totalOrder', $totalOrder)->with('sumProduct', $sumProduct)
+            ->with('list', $list)->with('category', $category)->with('products', $products)
+            ->with('listAttribute', $listAttribute)->with('lastData', $lastData)
+            ->with('search', $req->search);
+    }
     public function getOrderByIdSalecare(Request $req)
     {
         $result = '';
@@ -81,29 +179,43 @@ class OrdersController extends Controller
         $today = date("d/m/Y", time());
         $p['daterange'] = [$today, $today];
         $category = Category::where('status', 1)->get();
+        $products = Product::where('status', 1)->get();
         $data       = $this->getListOrderByPermisson(Auth::user(), $p);
         $sumProduct = $data->sum('qty');
         $totalOrder = $data->count();
         $list       = $data->paginate(50);
         $sales      = Helper::getListSale()->get();
-
-        return view('pages.orders.index')->with('sales', $sales)->with('totalOrder', $totalOrder)->with('sumProduct', $sumProduct)->with('list', $list)->with('category', $category);
+        $prControler = new ProductController();
+        $listAttribute = $prControler->getAttributesProduct();
+        $listAttribute = json_encode($listAttribute);
+        return view('pages.orders.index')->with('sales', $sales)->with('totalOrder', $totalOrder)->with('sumProduct', $sumProduct)
+        ->with('list', $list)->with('category', $category)->with('products', $products)->with('listAttribute', $listAttribute);
     }
 
     public function getListOrderByPermisson($user, $dataFilter = null, $checkAll = false, $getJson = false) 
     {
         $list   = Orders::orderBy('id', 'desc');
+        
         if ($dataFilter) {
             if (isset($dataFilter['daterange'])) {
                 $time       = $dataFilter['daterange'];
+                if (getType($time) == 'string') {
+                    $time = explode("-", $time);
+                }
                 $timeBegin  = str_replace('/', '-', $time[0]);
                 $timeEnd    = str_replace('/', '-', $time[1]);
                 $dateBegin  = date('Y-m-d',strtotime("$timeBegin"));
                 $dateEnd    = date('Y-m-d',strtotime("$timeEnd"));
                 $list->whereDate('created_at', '>=', $dateBegin)
-                ->whereDate('created_at', '<=', $dateEnd);
+                    ->whereDate('created_at', '<=', $dateEnd);
+            } else {
+                $timeBegin = $timeEnd = date("d-m-Y", time());
+                $dateBegin  = date('Y-m-d',strtotime("$timeBegin"));
+                $dateEnd    = date('Y-m-d',strtotime("$timeEnd"));
+                $list->whereDate('created_at', '>=', $dateBegin)
+                    ->whereDate('created_at', '<=', $dateEnd);
             }
-                   
+
             if (isset($dataFilter['status'])) {
                 $list->whereStatus($dataFilter['status']);
             }
@@ -123,20 +235,44 @@ class OrdersController extends Controller
 
             if (isset($dataFilter['product'])) {
                 $ids = [];
-                
+               
                 foreach ($list->get() as $order) {
                     $products = json_decode($order->id_product);
                     foreach ($products as $product) {
                         if ($product->id == $dataFilter['product']) {
-                            $ids[] = $order->id;
+                            if ($product->id == 83 && $product->variantId !== 0) {
+                                $variant = HelperProduct::getProductVariantById($product->variantId);
+                                $listAttributeOfItem = [];
+                                if (!$variant) {
+                                    continue;
+                                }
+                                foreach ($variant->attributeValues as $attribute) {
+                                    $listAttributeOfItem[] = $attribute->attribute_value_id;
+                                }
+                              
+                                if (isset($dataFilter['attr_1']) && isset($dataFilter['attr_2'])
+                                    && in_array($dataFilter['attr_1'], $listAttributeOfItem) && in_array($dataFilter['attr_2'], $listAttributeOfItem)) {
+                                    $ids[] = $order->id;
+                                } else if (isset($dataFilter['attr_1']) && !isset($dataFilter['attr_2']) && in_array($dataFilter['attr_1'], $listAttributeOfItem)) {
+                                    $ids[] = $order->id;
+                                } else if (!isset($dataFilter['attr_1']) && isset($dataFilter['attr_2']) && in_array($dataFilter['attr_2'], $listAttributeOfItem)) {
+                                    $ids[] = $order->id;
+                                } else if (!isset($dataFilter['attr_1']) && !isset($dataFilter['attr_2'])) {
+                                    $ids[] = $order->id;
+                                }
+                                
+                            } else {
+                                $ids[] = $order->id;
+                            }
                             break;
                         }
                     }
                 }
 
                 $list = Orders::whereIn('id', $ids)->orderBy('id', 'desc');
+                
             }
-
+        
             if (isset($dataFilter['group'])) {
                 $group = Group::find($dataFilter['group']);
                 if ($group) {
@@ -681,8 +817,13 @@ class OrdersController extends Controller
             $totalOrder = $orders->count();
             $list       = $orders->paginate(50);
             $sumProduct = $orders->sum('qty');
+            $prControler = new ProductController();
+            $listAttribute = $prControler->getAttributesProduct();
+            $listAttribute = json_encode($listAttribute);
+            $products = Product::where('status', 1)->get();
             return view('pages.orders.index')->with('list', $list)->with('search', $request->search)
-                ->with('totalOrder', $totalOrder)->with('sumProduct', $sumProduct);           
+                ->with('totalOrder', $totalOrder)->with('sumProduct', $sumProduct)->with('listAttribute', $listAttribute)
+                ->with('products', $products);           
         } 
 
         return redirect('/');
@@ -706,44 +847,47 @@ class OrdersController extends Controller
         return redirect('/don-hang') ->with('error', 'Đã xảy ra lỗi hoặc đơn hàng không tồn tại!');
     }
 
-    public function filterOrderByDate(Request $req) {
-        $dataFilter = [];
-
-        if ($req->daterange) {
-            $time       = $req->daterange;
-            $arrTime    = explode("-",$time); 
-            $dataFilter['daterange'] = $arrTime;
+    public function filterOrderByDate(Request $req) 
+    {
+        if ($req->search) {
+            return $this->search($req);
         }
+
+        // if ($req->daterange) {
+        //     $time       = $req->daterange;
+        //     $arrTime    = explode("-",$time); 
+        //     $dataFilter['daterange'] = $arrTime;
+        // }
         
-        // $dataFilter['status']       = 1; //chưa giao vận
-        if ($req->status != 999) {
-            $dataFilter['status'] = $req->status;
-        }
+        // // $dataFilter['status']       = 1; //chưa giao vận
+        // if ($req->status != 999) {
+        //     $dataFilter['status'] = $req->status;
+        // }
 
-        $category = $req->category;
-        if ($category != 999) {
-            $dataFilter['category'] = $category;
-        }
+        // $category = $req->category;
+        // if ($category != 999) {
+        //     $dataFilter['category'] = $category;
+        // }
 
-        $product = $req->product;
-        if ($product != 999) {
-            $dataFilter['product'] = $product;
-        }
+        // $product = $req->product;
+        // if ($product != 999) {
+        //     $dataFilter['product'] = $product;
+        // }
 
-        $sale = $req->sale;
-        if ($sale != 999) {
-            $dataFilter['sale'] = $sale;
-        } 
+        // $sale = $req->sale;
+        // if ($sale != 999) {
+        //     $dataFilter['sale'] = $sale;
+        // } 
 
-        $src = $req->src;
-        if ($src != 999) {
-            $dataFilter['src'] = $src;
-        } 
+        // $src = $req->src;
+        // if ($src != 999) {
+        //     $dataFilter['src'] = $src;
+        // } 
 
-        $mkt = $req->mkt;
-        if ($mkt != 999) {
-            $dataFilter['mkt'] = $mkt;
-        }
+        // $mkt = $req->mkt;
+        // if ($mkt != 999) {
+        //     $dataFilter['mkt'] = $mkt;
+        // }
 
         // $typeCustomer = $req->type_customer;
         // if (!$typeCustomer) {
@@ -751,16 +895,21 @@ class OrdersController extends Controller
         // }
 
         try {
-            $data       = $this->getListOrderByPermisson(Auth::user(), $dataFilter);
+            $data       = $this->getListOrderByPermisson(Auth::user(), $req);
             $totalOrder = $data->count();
           
             $sumProduct = $data->sum('qty');
             $category   = Category::where('status', 1)->get();
             $list       = $data->paginate(50);
             $sales      = Helper::getListSale()->get();
-
+            $products = Product::where('status', 1)->get();
+            $prControler = new ProductController();
+            $listAttribute = $prControler->getAttributesProduct();
+            $listAttribute = json_encode($listAttribute);
+            
             return view('pages.orders.index')->with('list', $list)->with('category', $category)
-                ->with('sumProduct', $sumProduct)->with('sales', $sales)->with('totalOrder', $totalOrder);
+                ->with('sumProduct', $sumProduct)->with('sales', $sales)->with('totalOrder', $totalOrder)
+                ->with('products', $products)->with('listAttribute', $listAttribute);
         } catch (\Exception $e) {
             // return $e;
             dd($e);

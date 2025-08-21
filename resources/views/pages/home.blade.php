@@ -672,7 +672,7 @@
             } else if (data.data.length > 0) {
               /* lọc data digital*/
               var str = '';
-              console.log('trSum', data.trSum)
+              console.log('data', data.data)
               var newCusomerTrSum = data.trSum.new_customer;
               var oldCusomerTrSum = data.trSum.old_customer;
               var summaryCusomerTrSum = data.trSum.sumary_total;

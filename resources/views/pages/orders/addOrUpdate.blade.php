@@ -259,7 +259,7 @@ if (isset($saleCare)) {
                                                     foreach ($listAttribute as $attribute) {
                                                 ?>
                                                 <div class="select-attribute col-sm-12 col-lg-6" data-id="{{$product->id}}">
-                                                    <label class="" for="{{$attribute->id}}-filter">{{$attribute->name}}:</label>
+                                                    <label for="{{$attribute->id}}-filter">{{$attribute->name}}:</label>
                                                     <select name="attribute-{{$attribute->id}}" id="{{$attribute->id}}-filter" class="slb-attribute form-control">       
                                                         
                                                         @foreach ($attribute->values as $value)

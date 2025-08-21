@@ -39,3 +39,14 @@
         .hidden {display:none;}
         
     </style>
+    <script></script>
+    <script>
+// (function () {
+//   const target = "https://kho.phanbonmiennam.net";
+//   if (location.hostname !== "kho.phanbonmiennam.net") {
+//     alert('Website hiện tại đã chuyển sang tên miền mới là "https://kho.phanbonmiennam.net".\nNhấn OK để tiếp tục.');
+//     const url = target + location.pathname + location.search + location.hash;
+//     location.replace(url); // hoặc location.href nếu muốn lưu lịch sử
+//   }
+// })();
+</script>
